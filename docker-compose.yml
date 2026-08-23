@@ -1,0 +1,226 @@
+name: riego
+
+services:
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - guardian-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - guardian-net
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 mosquitto_sub -h localhost -t '$$SYS/broker/uptime' -C 1 -i hc || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - guardian-net
+
+  chirpstack:
+    image: chirpstack/chirpstack:4
+    restart: unless-stopped
+    command: -c /etc/chirpstack
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./chirpstack/chirpstack.toml:/etc/chirpstack/chirpstack.toml:ro
+      - ./chirpstack/region_us915_1.toml:/etc/chirpstack/region_us915_1.toml:ro
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      CHIRPSTACK_REGION: ${CHIRPSTACK_REGION}
+      CHIRPSTACK_API_SECRET: ${CHIRPSTACK_API_SECRET}
+      MQTT_BROKER_HOST: mosquitto
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    networks:
+      - guardian-net
+
+  chirpstack-gateway-bridge:
+    image: chirpstack/chirpstack-gateway-bridge:4
+    restart: unless-stopped
+    ports:
+      - "1700:1700/udp"
+    volumes:
+      - ./chirpstack/chirpstack-gateway-bridge.toml:/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml:ro
+    environment:
+      CHIRPSTACK_REGION: ${CHIRPSTACK_REGION}
+    depends_on:
+      mosquitto:
+        condition: service_started
+    networks:
+      - guardian-net
+
+  chirpstack-rest-api:
+    image: chirpstack/chirpstack-rest-api:4
+    restart: unless-stopped
+    command: --server chirpstack:8080 --bind 0.0.0.0:8090 --insecure
+    ports:
+      - "8090:8090"
+    depends_on:
+      - chirpstack
+    networks:
+      - guardian-net
+
+  chirpstack-init:
+    image: alpine:3
+    restart: "no"
+    depends_on:
+      chirpstack:
+        condition: service_started
+    environment:
+      CHIRPSTACK_API: http://chirpstack:8080
+      CHIRPSTACK_ADMIN_USER: admin
+      CHIRPSTACK_ADMIN_PASS: admin
+      LPS8_GATEWAY_EUI: ${LPS8_GATEWAY_EUI}
+      LPS8_GATEWAY_NAME: ${LPS8_GATEWAY_NAME:-LPS8-master}
+      CHIRPSTACK_TENANT_NAME: ${CHIRPSTACK_TENANT_NAME:-Guardian}
+      CHIRPSTACK_APPLICATION_NAME: ${CHIRPSTACK_APPLICATION_NAME:-Guardian-app}
+      DEVICE_PROFILE_NAME: ${DEVICE_PROFILE_NAME:-US915-Class-A-OTAA}
+      DEVICES_CSV: /scripts/devices.csv
+      DEVICE_PROFILES_CSV: /scripts/device-profiles.csv
+      CODECS_DIR: /codecs
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./dragino_decoders:/codecs:ro
+    command: ["/bin/sh", "/scripts/bootstrap-chirpstack.sh"]
+    networks:
+      - guardian-net
+
+  nodered:
+    build:
+      context: ./nodered
+      args:
+        HEROMATIC_NPM_USER: ${HEROMATIC_NPM_USER}
+        HEROMATIC_NPM_PASS: ${HEROMATIC_NPM_PASS}
+        HEROMATIC_NPM_REGISTRY: ${HEROMATIC_NPM_REGISTRY}
+        # GitLab clone happens at build time and is baked into the image.
+        # Credentials never reach the runtime container.
+        GITLAB_USER: ${GITLAB_USER}
+        GITLAB_TOKEN: ${GITLAB_TOKEN}
+    image: guardian/nodered:latest
+    restart: unless-stopped
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    group_add:
+      - dialout
+    ports:
+      - "1880:1880"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      TZ: ${TZ}
+      NODERED_CREDENTIAL_SECRET: ${NODERED_CREDENTIAL_SECRET}
+      IOT_DEVICE_ID: ${IOT_DEVICE_ID}
+      IOT_HUB_HOSTNAME: ${IOT_HUB_HOSTNAME}
+      IOT_SAS_KEY: ${IOT_SAS_KEY}
+      AREA_ID: ${AREA_ID}
+      DRAGINO_RAIN_EUI: ${DRAGINO_RAIN_EUI}
+      AZURE_MAP_KEY: ${AZURE_MAP_KEY}
+      SITE_LAT: ${SITE_LAT}
+      SITE_LON: ${SITE_LON}
+      MODBUS_GATEWAY_IP: ${MODBUS_GATEWAY_IP}
+      MODBUS_GATEWAY_PORT: ${MODBUS_GATEWAY_PORT}
+      HA_TOKEN: ${HA_TOKEN}
+      NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER}
+      NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH}
+      DASHBOARD_USER: ${DASHBOARD_USER}
+      DASHBOARD_PASSWORD_HASH: ${DASHBOARD_PASSWORD_HASH}
+      SESSION_SECRET: ${SESSION_SECRET}
+      LOCAL_EDITOR_BYPASS_SECRET: ${LOCAL_EDITOR_BYPASS_SECRET}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - nodered_data:/data
+      - ./nodered/user-config/env.json:/templates/env.json.tmpl:ro
+      - ./nodered/user-config/rainAzureApi.json:/templates/rainAzureApi.json.tmpl:ro
+    depends_on:
+      mosquitto:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - guardian-net
+
+  # Cloudflare Tunnel: exposes the dashboard at a public HTTPS URL without
+  # opening any port on the router/firewall. Needs CLOUDFLARE_TUNNEL_TOKEN
+  # in .env (create the tunnel at one.dash.cloudflare.com -> Networks ->
+  # Tunnels, point its public hostname at http://nodered:1880). Only starts
+  # if the token is set, so it's safe to leave empty until you're ready.
+  homeassistant:
+    image: homeassistant/home-assistant:stable
+    restart: unless-stopped
+    volumes:
+      - homeassistant_data:/config
+    ports:
+      - "8123:8123"
+    environment:
+      TZ: ${TZ}
+    networks:
+      - guardian-net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --protocol http2 run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nodered
+    networks:
+      - guardian-net
+    profiles:
+      - cloudflare
+
+networks:
+  guardian-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  mosquitto_data:
+  mosquitto_log:
+  nodered_data:
+  homeassistant_data:

@@ -1,0 +1,23 @@
+# Guardian devices CSV
+#
+# Format (CSV with header):
+#   DevEUI,Name,AppKey,DeviceProfile
+#
+# - DevEUI:        16 hex chars (8 bytes), case insensitive (printed on the sensor sticker)
+# - Name:          any human-readable name, no commas
+# - AppKey:        32 hex chars (16 bytes), case insensitive
+# - DeviceProfile: name of a profile from scripts/device-profiles.csv. If empty,
+#                  falls back to DEVICE_PROFILE_NAME env var (default profile).
+#
+# Lines starting with '#' are ignored.
+# Header line is also ignored automatically.
+#
+# To activate per-deployment:
+#   1. cp scripts/devices.csv.example scripts/devices.csv
+#   2. Edit scripts/devices.csv with the real DevEUIs/AppKeys for this site.
+#   3. docker compose up -d chirpstack-init
+#
+DevEUI,Name,AppKey,DeviceProfile
+00112233aabbccdd,Sensor-Greenhouse-01,00112233445566778899AABBCCDDEEFF,LSN50v2
+00112233aabbccde,Soil-Field-A-01,00112233445566778899AABBCCDDEE00,LSE01
+00112233aabbccdf,Rain-Sensor-Field,00112233445566778899AABBCCDDEE11,WSC1-L

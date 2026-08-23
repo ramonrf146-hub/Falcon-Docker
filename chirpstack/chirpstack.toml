@@ -1,0 +1,36 @@
+# Guardian stack — ChirpStack v4 main server config
+# Env vars referenced as $VAR are resolved by chirpstack at startup.
+
+[logging]
+  level = "info"
+  json = false
+
+[postgresql]
+  dsn = "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB?sslmode=disable"
+  automigrate = true
+
+[redis]
+  servers = ["redis://redis:6379/"]
+
+[network]
+  net_id = "000000"
+  enabled_regions = ["$CHIRPSTACK_REGION"]
+
+[network.scheduler]
+  interval = "1s"
+
+[api]
+  bind = "0.0.0.0:8080"
+  secret = "$CHIRPSTACK_API_SECRET"
+
+[integration]
+  enabled = ["mqtt"]
+
+[integration.mqtt]
+  event_topic_template = "application/{{ .ApplicationID }}/device/{{ .DevEUI }}/event/{{ .EventType }}"
+  state_topic_template = "application/{{ .ApplicationID }}/device/{{ .DevEUI }}/state/{{ .StateType }}"
+  command_topic_template = "application/{{ .ApplicationID }}/device/{{ .DevEUI }}/command/{{ .CommandType }}"
+  server = "tcp://mosquitto:1883/"
+  json = true
+  clean_session = true
+  client_id = "chirpstack"

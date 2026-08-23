@@ -1,0 +1,32 @@
+# Guardian stack — ChirpStack v4 gateway-bridge config
+# Translates Semtech UDP packet forwarder (LPS8v2) → MQTT → ChirpStack.
+
+[general]
+  log_level = 4
+  log_to_syslog = false
+
+[backend]
+  type = "semtech_udp"
+
+[backend.semtech_udp]
+  udp_bind = "0.0.0.0:1700"
+  skip_crc_check = false
+  fake_rx_time = false
+
+[integration]
+  marshaler = "protobuf"
+
+[integration.mqtt]
+  # gateway-bridge does NOT expand $ENV in TOML (unlike chirpstack core).
+  # Region prefix must be hardcoded; matches enabled_regions in chirpstack.toml.
+  event_topic_template = "us915_1/gateway/{{ .GatewayID }}/event/{{ .EventType }}"
+  state_topic_template = "us915_1/gateway/{{ .GatewayID }}/state/{{ .StateType }}"
+  command_topic_template = "us915_1/gateway/{{ .GatewayID }}/command/#"
+
+[integration.mqtt.auth]
+  type = "generic"
+
+[integration.mqtt.auth.generic]
+  server = "tcp://mosquitto:1883/"
+  clean_session = false
+  client_id = "chirpstack-gateway-bridge"

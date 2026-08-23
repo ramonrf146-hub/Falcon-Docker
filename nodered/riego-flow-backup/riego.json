@@ -1,0 +1,359 @@
+{
+  "zonas": [
+    {
+      "id": 1787282845044,
+      "nombre": "H-1",
+      "unitid": 1,
+      "canalesTarjeta": 8,
+      "maxSimultaneas": 6,
+      "habilitada": true,
+      "alarma": false
+    },
+    {
+      "id": 1787331458792,
+      "nombre": "H-2",
+      "unitid": 2,
+      "canalesTarjeta": 16,
+      "maxSimultaneas": 6,
+      "habilitada": false,
+      "alarma": false
+    },
+    {
+      "id": 1787375010911,
+      "nombre": "H-3",
+      "unitid": 3,
+      "canalesTarjeta": 8,
+      "maxSimultaneas": 6,
+      "habilitada": false,
+      "alarma": false
+    }
+  ],
+  "valvulas": [
+    {
+      "id": 1787282852789,
+      "zonaId": 1787282845044,
+      "nombre": "V-1",
+      "canal": 0,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787282861686,
+      "zonaId": 1787282845044,
+      "nombre": "V-2",
+      "canal": 1,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787283177562,
+      "zonaId": 1787282845044,
+      "nombre": "V-3",
+      "canal": 2,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787285126121,
+      "zonaId": 1787282845044,
+      "nombre": "V-4",
+      "canal": 3,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787330814823,
+      "zonaId": 1787282845044,
+      "nombre": "V-5",
+      "canal": 4,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787330825024,
+      "zonaId": 1787282845044,
+      "nombre": "V-6",
+      "canal": 5,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787330835000,
+      "zonaId": 1787282845044,
+      "nombre": "V-7",
+      "canal": 6,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787330847437,
+      "zonaId": 1787282845044,
+      "nombre": "V-8",
+      "canal": 7,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787331474452,
+      "zonaId": 1787331458792,
+      "nombre": "V-1",
+      "canal": 0,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352111273,
+      "zonaId": 1787331458792,
+      "nombre": "V-2",
+      "canal": 1,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352121028,
+      "zonaId": 1787331458792,
+      "nombre": "V-3",
+      "canal": 2,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352129652,
+      "zonaId": 1787331458792,
+      "nombre": "V-4",
+      "canal": 3,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352138406,
+      "zonaId": 1787331458792,
+      "nombre": "V-5",
+      "canal": 4,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352152174,
+      "zonaId": 1787331458792,
+      "nombre": "V-6",
+      "canal": 5,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352167411,
+      "zonaId": 1787331458792,
+      "nombre": "V-7",
+      "canal": 6,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352174205,
+      "zonaId": 1787331458792,
+      "nombre": "V-8",
+      "canal": 7,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352194621,
+      "zonaId": 1787331458792,
+      "nombre": "V-9",
+      "canal": 8,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352204229,
+      "zonaId": 1787331458792,
+      "nombre": "V-10",
+      "canal": 9,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352211843,
+      "zonaId": 1787331458792,
+      "nombre": "V-11",
+      "canal": 10,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352217697,
+      "zonaId": 1787331458792,
+      "nombre": "V-12",
+      "canal": 11,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352225427,
+      "zonaId": 1787331458792,
+      "nombre": "V-13",
+      "canal": 12,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352241066,
+      "zonaId": 1787331458792,
+      "nombre": "V-14",
+      "canal": 13,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352252287,
+      "zonaId": 1787331458792,
+      "nombre": "V-15",
+      "canal": 14,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787352266169,
+      "zonaId": 1787331458792,
+      "nombre": "V-16",
+      "canal": 15,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375024582,
+      "zonaId": 1787375010911,
+      "nombre": "V-1",
+      "canal": 0,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375040604,
+      "zonaId": 1787375010911,
+      "nombre": "V-2",
+      "canal": 1,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375072851,
+      "zonaId": 1787375010911,
+      "nombre": "V-3",
+      "canal": 2,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375085124,
+      "zonaId": 1787375010911,
+      "nombre": "V-4",
+      "canal": 3,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375171155,
+      "zonaId": 1787375010911,
+      "nombre": "V-5",
+      "canal": 4,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375188856,
+      "zonaId": 1787375010911,
+      "nombre": "V-6",
+      "canal": 5,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375206298,
+      "zonaId": 1787375010911,
+      "nombre": "V-7",
+      "canal": 6,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    },
+    {
+      "id": 1787375225160,
+      "zonaId": 1787375010911,
+      "nombre": "V-8",
+      "canal": 7,
+      "estado": false,
+      "origen": null,
+      "aperturaDesde": null,
+      "duracionMs": null
+    }
+  ],
+  "rutinas": [],
+  "config": {
+    "modoAutomatico": true,
+    "watchdogMinutos": 60,
+    "maxSimultaneasGlobal": 4
+  }
+}

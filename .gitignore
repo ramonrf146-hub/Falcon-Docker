@@ -1,0 +1,35 @@
+# Secrets and local environment
+.env
+*.pem
+*.key
+
+# Docker runtime data (volumes are managed by docker, but guard against bind-mount leakage)
+nodered/data/
+mosquitto/data/
+mosquitto/log/
+postgres/data/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+.claude/
+
+# Logs
+*.log
+
+# Gateway hardware backups (binary, machine-specific)
+lps8-*.tar.gz
+*-config.tar.gz
+# Note: lps8_backup/ IS versioned — it's the master config restored to new LPS8s.
+
+# Per-site device list (DevEUIs and AppKeys are secrets-ish)
+scripts/devices.csv
+
+# Exported docker image tarballs
+dist/
+
+# Contiene una clave real de Azure IoT de otro sistema (no riego) -- nunca commitear
+nodered/user-config/env.json
