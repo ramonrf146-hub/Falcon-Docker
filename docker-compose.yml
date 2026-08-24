@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - guardian-net
+      - riego-net
 
   redis:
     image: redis:7-alpine
@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - guardian-net
+      - riego-net
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -47,7 +47,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - guardian-net
+      - riego-net
 
   chirpstack:
     image: chirpstack/chirpstack:4
@@ -73,7 +73,7 @@ services:
       mosquitto:
         condition: service_started
     networks:
-      - guardian-net
+      - riego-net
 
   chirpstack-gateway-bridge:
     image: chirpstack/chirpstack-gateway-bridge:4
@@ -88,7 +88,7 @@ services:
       mosquitto:
         condition: service_started
     networks:
-      - guardian-net
+      - riego-net
 
   chirpstack-rest-api:
     image: chirpstack/chirpstack-rest-api:4
@@ -99,7 +99,7 @@ services:
     depends_on:
       - chirpstack
     networks:
-      - guardian-net
+      - riego-net
 
   chirpstack-init:
     image: alpine:3
@@ -113,8 +113,8 @@ services:
       CHIRPSTACK_ADMIN_PASS: admin
       LPS8_GATEWAY_EUI: ${LPS8_GATEWAY_EUI}
       LPS8_GATEWAY_NAME: ${LPS8_GATEWAY_NAME:-LPS8-master}
-      CHIRPSTACK_TENANT_NAME: ${CHIRPSTACK_TENANT_NAME:-Guardian}
-      CHIRPSTACK_APPLICATION_NAME: ${CHIRPSTACK_APPLICATION_NAME:-Guardian-app}
+      CHIRPSTACK_TENANT_NAME: ${CHIRPSTACK_TENANT_NAME:-Riego}
+      CHIRPSTACK_APPLICATION_NAME: ${CHIRPSTACK_APPLICATION_NAME:-Riego-app}
       DEVICE_PROFILE_NAME: ${DEVICE_PROFILE_NAME:-US915-Class-A-OTAA}
       DEVICES_CSV: /scripts/devices.csv
       DEVICE_PROFILES_CSV: /scripts/device-profiles.csv
@@ -124,7 +124,7 @@ services:
       - ./dragino_decoders:/codecs:ro
     command: ["/bin/sh", "/scripts/bootstrap-chirpstack.sh"]
     networks:
-      - guardian-net
+      - riego-net
 
   nodered:
     build:
@@ -137,7 +137,7 @@ services:
         # Credentials never reach the runtime container.
         GITLAB_USER: ${GITLAB_USER}
         GITLAB_TOKEN: ${GITLAB_TOKEN}
-    image: guardian/nodered:latest
+    image: riego-docker:latest
     restart: unless-stopped
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
@@ -181,13 +181,10 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - guardian-net
+      - riego-net
 
-  # Cloudflare Tunnel: exposes the dashboard at a public HTTPS URL without
-  # opening any port on the router/firewall. Needs CLOUDFLARE_TUNNEL_TOKEN
-  # in .env (create the tunnel at one.dash.cloudflare.com -> Networks ->
-  # Tunnels, point its public hostname at http://nodered:1880). Only starts
-  # if the token is set, so it's safe to leave empty until you're ready.
+  # Home Assistant: bridge for Tuya/Zigbee sensors, polled by Node-RED's
+  # generic sensor registry for irrigation routine conditions.
   homeassistant:
     image: homeassistant/home-assistant:stable
     restart: unless-stopped
@@ -198,8 +195,13 @@ services:
     environment:
       TZ: ${TZ}
     networks:
-      - guardian-net
+      - riego-net
 
+  # Cloudflare Tunnel: exposes the dashboard at a public HTTPS URL without
+  # opening any port on the router/firewall. Needs CLOUDFLARE_TUNNEL_TOKEN
+  # in .env (create the tunnel at one.dash.cloudflare.com -> Networks ->
+  # Tunnels, point its public hostname at http://nodered:1880). Only starts
+  # if the token is set, so it's safe to leave empty until you're ready.
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -209,12 +211,12 @@ services:
     depends_on:
       - nodered
     networks:
-      - guardian-net
+      - riego-net
     profiles:
       - cloudflare
 
 networks:
-  guardian-net:
+  riego-net:
     driver: bridge
 
 volumes:

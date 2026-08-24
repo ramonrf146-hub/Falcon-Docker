@@ -1,7 +1,7 @@
-// Guardian stack — Node-RED settings.js
+// Riego stack — Node-RED settings.js
 // Enables the Projects feature and sets sentinelPath before module.exports.
 
-process.env.sentinelPath = 'C:/Projects/guardian-docker/nodered/user-config';
+process.env.sentinelPath = 'C:/Projects/RIEGO-DOCKER/nodered/user-config';
 
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);

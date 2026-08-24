@@ -1,16 +1,16 @@
 #!/bin/sh
-# Loads a guardian/nodered image tarball (produced by scripts/export-image.sh)
+# Loads a riego-docker image tarball (produced by scripts/export-image.sh)
 # into the local Docker engine, so `docker compose up -d --no-build` can use
 # it without needing GitLab credentials or rebuilding.
 #
 # Usage:  ./scripts/import-image.sh <path-to-tarball>
-# Example: ./scripts/import-image.sh dist/guardian-nodered-20261015-1430.tar.gz
+# Example: ./scripts/import-image.sh dist/riego-docker-20261015-1430.tar.gz
 
 set -eu
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <path-to-tarball>" >&2
-    echo "Example: $0 dist/guardian-nodered-20261015-1430.tar.gz" >&2
+    echo "Example: $0 dist/riego-docker-20261015-1430.tar.gz" >&2
     exit 1
 fi
 
@@ -31,7 +31,7 @@ gunzip -c "$TARBALL" | docker load
 
 echo
 echo "Loaded images:"
-docker image ls guardian/nodered
+docker image ls riego-docker
 
 echo
 echo "Next steps:"

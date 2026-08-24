@@ -1,4 +1,4 @@
-# Guardian stack — ChirpStack v4 gateway-bridge config
+# Riego stack — ChirpStack v4 gateway-bridge config
 # Translates Semtech UDP packet forwarder (LPS8v2) → MQTT → ChirpStack.
 
 [general]

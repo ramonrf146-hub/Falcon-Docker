@@ -1,17 +1,17 @@
 #!/bin/sh
-# Exports the guardian/nodered:latest image (already built locally) to a
+# Exports the riego-docker:latest image (already built locally) to a
 # compressed tarball that can be copied via USB/network/email to a fresh
 # PC and loaded with scripts/import-image.sh.
 #
 # Usage:  ./scripts/export-image.sh
-# Output: dist/guardian-nodered-<date>.tar.gz
+# Output: dist/riego-docker-<date>.tar.gz
 
 set -eu
 
-IMAGE="${IMAGE:-guardian/nodered:latest}"
+IMAGE="${IMAGE:-riego-docker:latest}"
 OUT_DIR="${OUT_DIR:-dist}"
 DATE_TAG=$(date +%Y%m%d-%H%M)
-OUT_FILE="$OUT_DIR/guardian-nodered-$DATE_TAG.tar.gz"
+OUT_FILE="$OUT_DIR/riego-docker-$DATE_TAG.tar.gz"
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: docker not found in PATH" >&2

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-# Guardian stack — Node-RED custom image.
+# Riego stack — Node-RED custom image.
 #
 # Build stages:
 #   deps    — installs npm packages (including @heromatic/*)
@@ -26,7 +26,7 @@ RUN set -eu; \
           echo "@heromatic:registry=${HEROMATIC_NPM_REGISTRY}"; \
           echo "_auth=${AUTH}"; \
           echo "always-auth=true"; \
-          echo "email=ci@guardian.local"; \
+          echo "email=ci@riego.local"; \
         } > /root/.npmrc; \
     fi
 RUN npm install --prefix /deps --omit=dev \
@@ -48,7 +48,7 @@ RUN npm install --prefix /deps --omit=dev \
     connect-pg-simple \
     pg
 RUN rm -f /root/.npmrc
-# ---- Stage 2: clone the Guardian project from GitLab ----
+# ---- Stage 2: clone the optional external GitLab project ----
 FROM alpine/git:latest AS project
 ARG GITLAB_USER
 ARG GITLAB_TOKEN
@@ -61,7 +61,7 @@ RUN set -eu; \
             /project; \
         rm -rf /project/.git; \
     else \
-        echo "GITLAB_USER/GITLAB_TOKEN no proporcionados — se omite el clonado del proyecto Guardian (esta etapa es opcional)" >&2; \
+        echo "GITLAB_USER/GITLAB_TOKEN no proporcionados — se omite el clonado del proyecto externo (esta etapa es opcional)" >&2; \
         mkdir -p /project; \
     fi
 # ---- Stage 3: final runtime image ----
@@ -74,7 +74,7 @@ RUN apk add --no-cache gettext ca-certificates
 COPY --from=deps --chown=node-red:node-red /deps/node_modules /data/node_modules
 COPY --from=deps --chown=node-red:node-red /deps/package.json /data/package.json
 COPY --from=deps --chown=node-red:node-red /deps/package-lock.json /data/package-lock.json
-# Pre-cloned Guardian project (no .git, no credentials).
+# Pre-cloned external project (no .git, no credentials).
 COPY --from=project --chown=node-red:node-red /project /data/projects/enviromental
 # settings.js, templates, entrypoint.
 COPY --chown=node-red:node-red settings.js /data/settings.js

@@ -1,4 +1,4 @@
-# Guardian stack — ChirpStack v4 main server config
+# Riego stack — ChirpStack v4 main server config
 # Env vars referenced as $VAR are resolved by chirpstack at startup.
 
 [logging]
