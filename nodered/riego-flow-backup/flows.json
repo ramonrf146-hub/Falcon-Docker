@@ -28,6 +28,13 @@
         "info": ""
     },
     {
+        "id": "tab-casa-api",
+        "type": "tab",
+        "label": "Casa API (app móvil)",
+        "disabled": false,
+        "info": "API HTTP + WebSocket que consume la app Casa.\n\nENDPOINTS\n- GET  /api/devices            → estado de todos los dispositivos\n- POST /api/device/:id         → {\"on\":true} | {\"level\":40} | {\"target\":21.5,\"mode\":\"heat\"} | {\"ir\":\"POWER\"}\n- POST /api/scene/:id          → ejecuta una escena\n- POST /api/automation/:id     → {\"on\":false} activa/pausa una automatización\n- WS   /ws/casa                → empuja cambios de estado en vivo\n\nANTES DE USAR\n1. settings.js: httpNodeCors: { origin: '*', methods: 'GET,POST' }  (o el origen de la app)\n2. settings.js o env: API_TOKEN=<un token largo>  — el nodo 'Auth' lo exige en la cabecera x-api-token\n3. Configura el broker MQTT (nodo mqtt-broker) y los IDs/topics reales en 'Estado inicial'\n4. Sustituye los nodos marcados PLACEHOLDER por tus nodos reales:\n   - Tuya LAN  → node-red-contrib-tuya-smart-device\n   - Sonoff    → mqtt out (Tasmota: cmnd/<topic>/POWER) o eWeLink LAN\n   - Broadlink → node-red-contrib-broadlink-control (envía el código aprendido)\n   - Nest      → http request a Google SDM API con OAuth (node-red-contrib-google-smartdevicemanagement)"
+    },
+    {
         "id": "d2_ui_base",
         "type": "ui-base",
         "name": "Riego Dashboard",
@@ -347,6 +354,32 @@
                 "py": 0
             }
         }
+    },
+    {
+        "id": "ws-server-casa",
+        "type": "websocket-listener",
+        "path": "/ws/casa",
+        "wholemsg": "false"
+    },
+    {
+        "id": "broker-local",
+        "type": "mqtt-broker",
+        "name": "mosquitto local",
+        "broker": "192.168.1.42",
+        "port": "1883",
+        "clientid": "node-red-casa",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "closeTopic": "",
+        "closeQos": "0",
+        "willTopic": "",
+        "willQos": "0",
+        "sessionExpiry": ""
     },
     {
         "id": "27a55c5c7816e4e0",
@@ -1937,6 +1970,69 @@
         ]
     },
     {
+        "id": "rz_fn_crear_sensor",
+        "type": "function",
+        "z": "rz_tab",
+        "name": "Crear sensor",
+        "func": "const d = msg.payload;\nlet sensores = global.get('sensoresRegistrados') || [];\n\nconst faltantes = [];\nif (!d.nombre || !d.nombre.trim()) faltantes.push('nombre');\nif (!d.fuente) faltantes.push('fuente');\nif (d.fuente === 'home_assistant' && (!d.haEntityId || !d.haEntityId.trim())) faltantes.push('entity_id de Home Assistant');\nif (d.fuente === 'mqtt' && (!d.mqttDevEui || !d.mqttDevEui.trim() || !d.mqttPath || !d.mqttPath.trim())) faltantes.push('Dev EUI y campo (MQTT)');\nif (faltantes.length) return [null, null, { payload: 'Falta: ' + faltantes.join(', ') }];\n\nconst nuevo = {\n    id: Date.now(), nombre: d.nombre.trim(), tipo: d.tipo || 'otro', unidad: (d.unidad || '').trim(),\n    fuente: d.fuente, habilitado: true,\n    haEntityId: d.fuente === 'home_assistant' ? d.haEntityId.trim() : '',\n    mqttDevEui: d.fuente === 'mqtt' ? d.mqttDevEui.trim() : '',\n    mqttPath: d.fuente === 'mqtt' ? d.mqttPath.trim() : ''\n};\nsensores.push(nuevo);\nglobal.set('sensoresRegistrados', sensores);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor creado: ' + nuevo.nombre }];",
+        "outputs": 3,
+        "x": 900,
+        "y": 900,
+        "wires": [
+            [
+                "rz_tpl_config"
+            ],
+            [
+                "rz_fn_guardar"
+            ],
+            [
+                "rz_ui_text_confirm_config"
+            ]
+        ]
+    },
+    {
+        "id": "rz_fn_editar_sensor",
+        "type": "function",
+        "z": "rz_tab",
+        "name": "Editar sensor",
+        "func": "const d = msg.payload;\nlet sensores = global.get('sensoresRegistrados') || [];\nconst idx = sensores.findIndex(s => s.id === d.id);\nif (idx === -1) return [null, null, { payload: 'Sensor no encontrado' }];\n\nconst faltantes = [];\nif (!d.nombre || !d.nombre.trim()) faltantes.push('nombre');\nif (d.fuente === 'home_assistant' && (!d.haEntityId || !d.haEntityId.trim())) faltantes.push('entity_id de Home Assistant');\nif (d.fuente === 'mqtt' && (!d.mqttDevEui || !d.mqttDevEui.trim() || !d.mqttPath || !d.mqttPath.trim())) faltantes.push('Dev EUI y campo (MQTT)');\nif (faltantes.length) return [null, null, { payload: 'Falta: ' + faltantes.join(', ') }];\n\nsensores[idx] = Object.assign({}, sensores[idx], {\n    nombre: d.nombre.trim(), tipo: d.tipo || 'otro', unidad: (d.unidad || '').trim(),\n    fuente: d.fuente, habilitado: d.habilitado !== false,\n    haEntityId: d.fuente === 'home_assistant' ? d.haEntityId.trim() : '',\n    mqttDevEui: d.fuente === 'mqtt' ? d.mqttDevEui.trim() : '',\n    mqttPath: d.fuente === 'mqtt' ? d.mqttPath.trim() : ''\n});\nglobal.set('sensoresRegistrados', sensores);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor actualizado: ' + sensores[idx].nombre }];",
+        "outputs": 3,
+        "x": 900,
+        "y": 940,
+        "wires": [
+            [
+                "rz_tpl_config"
+            ],
+            [
+                "rz_fn_guardar"
+            ],
+            [
+                "rz_ui_text_confirm_config"
+            ]
+        ]
+    },
+    {
+        "id": "rz_fn_eliminar_sensor",
+        "type": "function",
+        "z": "rz_tab",
+        "name": "Eliminar sensor",
+        "func": "const id = msg.payload.id;\nlet sensores = global.get('sensoresRegistrados') || [];\nconst sensor = sensores.find(s => s.id === id);\nif (!sensor) return [null, null, { payload: 'Sensor no encontrado' }];\n\nconst rutinas = flow.get('rutinas') || [];\nconst enUso = rutinas.some(r => (r.sensorTemp && r.sensorTemp.sensorId === id) || (r.sensorHum && r.sensorHum.sensorId === id));\nif (enUso) return [null, null, { payload: 'No se puede eliminar \"' + sensor.nombre + '\": esta en uso por una o mas rutinas' }];\n\nsensores = sensores.filter(s => s.id !== id);\nglobal.set('sensoresRegistrados', sensores);\n\nlet lecturas = global.get('lecturasSensores') || {}; delete lecturas[id]; global.set('lecturasSensores', lecturas);\nlet historiales = global.get('historialSensores') || {}; delete historiales[id]; global.set('historialSensores', historiales);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor eliminado: ' + sensor.nombre }];",
+        "outputs": 3,
+        "x": 900,
+        "y": 980,
+        "wires": [
+            [
+                "rz_tpl_config"
+            ],
+            [
+                "rz_fn_guardar"
+            ],
+            [
+                "rz_ui_text_confirm_config"
+            ]
+        ]
+    },
+    {
         "id": "auth_http_login_page",
         "type": "http in",
         "z": "auth_tab",
@@ -2376,6 +2472,49 @@
         "headers": {},
         "x": 660,
         "y": 440,
+        "wires": []
+    },
+    {
+        "id": "auth_http_admin_delete",
+        "type": "http in",
+        "z": "auth_tab",
+        "name": "POST /riego-auth/admin/users/delete",
+        "url": "/riego-auth/admin/users/delete",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 220,
+        "y": 500,
+        "wires": [
+            [
+                "auth_fn_admin_delete"
+            ]
+        ]
+    },
+    {
+        "id": "auth_fn_admin_delete",
+        "type": "function",
+        "z": "auth_tab",
+        "name": "Eliminar usuario",
+        "func": "if (!msg.req.session || !msg.req.session.user || msg.req.session.user.role !== 'admin') {\n    msg.statusCode = 403;\n    msg.payload = { error: 'Solo administradores' };\n    return msg;\n}\nconst { username } = msg.payload || {};\nif (!username) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'Falta usuario' };\n    return msg;\n}\nif (username === msg.req.session.user.username) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'No podes eliminar tu propio usuario' };\n    return msg;\n}\nconst pool = global.get('pgPool');\nreturn pool.query('DELETE FROM riego_auth.users WHERE username=$1', [username]).then(() => {\n    msg.payload = { ok: true };\n    return msg;\n}).catch(err => {\n    node.error(err, msg);\n    msg.statusCode = 500;\n    msg.payload = { error: 'Error interno' };\n    return msg;\n});",
+        "outputs": 1,
+        "x": 460,
+        "y": 500,
+        "wires": [
+            [
+                "auth_resp_admin_delete"
+            ]
+        ]
+    },
+    {
+        "id": "auth_resp_admin_delete",
+        "type": "http response",
+        "z": "auth_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 690,
+        "y": 500,
         "wires": []
     },
     {
@@ -2927,109 +3066,568 @@
         ]
     },
     {
-        "id": "rz_fn_crear_sensor",
-        "type": "function",
-        "z": "rz_tab",
-        "name": "Crear sensor",
-        "func": "const d = msg.payload;\nlet sensores = global.get('sensoresRegistrados') || [];\n\nconst faltantes = [];\nif (!d.nombre || !d.nombre.trim()) faltantes.push('nombre');\nif (!d.fuente) faltantes.push('fuente');\nif (d.fuente === 'home_assistant' && (!d.haEntityId || !d.haEntityId.trim())) faltantes.push('entity_id de Home Assistant');\nif (d.fuente === 'mqtt' && (!d.mqttDevEui || !d.mqttDevEui.trim() || !d.mqttPath || !d.mqttPath.trim())) faltantes.push('Dev EUI y campo (MQTT)');\nif (faltantes.length) return [null, null, { payload: 'Falta: ' + faltantes.join(', ') }];\n\nconst nuevo = {\n    id: Date.now(), nombre: d.nombre.trim(), tipo: d.tipo || 'otro', unidad: (d.unidad || '').trim(),\n    fuente: d.fuente, habilitado: true,\n    haEntityId: d.fuente === 'home_assistant' ? d.haEntityId.trim() : '',\n    mqttDevEui: d.fuente === 'mqtt' ? d.mqttDevEui.trim() : '',\n    mqttPath: d.fuente === 'mqtt' ? d.mqttPath.trim() : ''\n};\nsensores.push(nuevo);\nglobal.set('sensoresRegistrados', sensores);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor creado: ' + nuevo.nombre }];",
-        "outputs": 3,
-        "x": 900,
-        "y": 900,
+        "id": "cmt-1",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "1 · Estado en memoria (global.casa) — edita aquí tus dispositivos reales",
+        "info": "",
+        "x": 300,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "inj-init",
+        "type": "inject",
+        "z": "tab-casa-api",
+        "name": "al arrancar",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 100,
         "wires": [
             [
-                "rz_tpl_config"
-            ],
-            [
-                "rz_fn_guardar"
-            ],
-            [
-                "rz_ui_text_confirm_config"
+                "fn-init"
             ]
         ]
     },
     {
-        "id": "rz_fn_editar_sensor",
+        "id": "fn-init",
         "type": "function",
-        "z": "rz_tab",
-        "name": "Editar sensor",
-        "func": "const d = msg.payload;\nlet sensores = global.get('sensoresRegistrados') || [];\nconst idx = sensores.findIndex(s => s.id === d.id);\nif (idx === -1) return [null, null, { payload: 'Sensor no encontrado' }];\n\nconst faltantes = [];\nif (!d.nombre || !d.nombre.trim()) faltantes.push('nombre');\nif (d.fuente === 'home_assistant' && (!d.haEntityId || !d.haEntityId.trim())) faltantes.push('entity_id de Home Assistant');\nif (d.fuente === 'mqtt' && (!d.mqttDevEui || !d.mqttDevEui.trim() || !d.mqttPath || !d.mqttPath.trim())) faltantes.push('Dev EUI y campo (MQTT)');\nif (faltantes.length) return [null, null, { payload: 'Falta: ' + faltantes.join(', ') }];\n\nsensores[idx] = Object.assign({}, sensores[idx], {\n    nombre: d.nombre.trim(), tipo: d.tipo || 'otro', unidad: (d.unidad || '').trim(),\n    fuente: d.fuente, habilitado: d.habilitado !== false,\n    haEntityId: d.fuente === 'home_assistant' ? d.haEntityId.trim() : '',\n    mqttDevEui: d.fuente === 'mqtt' ? d.mqttDevEui.trim() : '',\n    mqttPath: d.fuente === 'mqtt' ? d.mqttPath.trim() : ''\n});\nglobal.set('sensoresRegistrados', sensores);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor actualizado: ' + sensores[idx].nombre }];",
-        "outputs": 3,
-        "x": 900,
-        "y": 940,
-        "wires": [
-            [
-                "rz_tpl_config"
-            ],
-            [
-                "rz_fn_guardar"
-            ],
-            [
-                "rz_ui_text_confirm_config"
-            ]
-        ]
+        "z": "tab-casa-api",
+        "name": "Estado inicial",
+        "func": "// Un objeto por dispositivo físico. 'addr'/'topic' son los datos reales de tu red.\nconst devices = [\n  { id:'l1',  name:'Lámpara Salón',        kind:'dimmer',     vendor:'tuya',      addr:'192.168.1.51', devId:'bf1234567890abcdef', localKey:'0123456789abcdef', on:true,  level:70, online:true, watts:8,  nominal:11 },\n  { id:'p1',  name:'TV Salón',             kind:'plug',       vendor:'tuya',      addr:'192.168.1.52', devId:'bf...', localKey:'...', on:true,  online:true, watts:96, nominal:96 },\n  { id:'p2',  name:'Cafetera',             kind:'plug',       vendor:'sonoff',    topic:'cafetera',    on:false, online:true, watts:0,  nominal:820 },\n  { id:'t1',  name:'Termostato',           kind:'thermostat', vendor:'nest',      devId:'enterprises/<PROJECT>/devices/<DEVICE>', target:21.5, current:22.3, mode:'heat', online:true },\n  { id:'ir1', name:'Aire Acondicionado',   kind:'ir',         vendor:'broadlink', addr:'192.168.1.70', on:false, irCount:9, online:true },\n  { id:'s1',  name:'Ventilador Dormitorio',kind:'switch',     vendor:'sonoff',    topic:'ventilador', on:false, online:true, watts:0, nominal:48 },\n  { id:'p3',  name:'Router y NAS',         kind:'plug',       vendor:'tuya',      addr:'192.168.1.53', devId:'bf...', localKey:'...', on:true, online:true, watts:27, nominal:27 },\n  { id:'s2',  name:'Luz Cocina',           kind:'switch',     vendor:'sonoff',    topic:'cocina',     on:false, online:false, watts:0, nominal:12 }\n];\n\nconst scenes = [\n  { id:'noche',   name:'Modo Noche',    steps:[ {id:'l1',level:10,on:true}, {id:'p1',on:false}, {id:'t1',target:19} ] },\n  { id:'off',     name:'Todo Apagado',  steps:[ {id:'l1',on:false}, {id:'p1',on:false}, {id:'p2',on:false}, {id:'s1',on:false}, {id:'s2',on:false} ] },\n  { id:'llegada', name:'Llegada',       steps:[ {id:'l1',level:80,on:true}, {id:'t1',target:21.5} ] },\n  { id:'cine',    name:'Cine',          steps:[ {id:'l1',level:15,on:true}, {id:'p1',on:true}, {id:'ir1',ir:'COOL_24'} ] },\n  { id:'manana',  name:'Buenos Días',   steps:[ {id:'p2',on:true}, {id:'s2',on:true} ] }\n];\n\nconst automations = [\n  { id:'a1', name:'Luces al atardecer',      on:true  },\n  { id:'a2', name:'Café laborables',         on:true  },\n  { id:'a3', name:'Termostato eco al salir', on:true  },\n  { id:'a4', name:'Cierre de noche',         on:false },\n  { id:'a5', name:'AC si supera 26°',        on:true  }\n];\n\nglobal.set('casa', { devices, scenes, automations, ts: Date.now() });\nnode.status({ fill:'green', shape:'dot', text: devices.length + ' dispositivos' });\nreturn null;",
+        "outputs": 0,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 100,
+        "wires": []
     },
     {
-        "id": "rz_fn_eliminar_sensor",
-        "type": "function",
-        "z": "rz_tab",
-        "name": "Eliminar sensor",
-        "func": "const id = msg.payload.id;\nlet sensores = global.get('sensoresRegistrados') || [];\nconst sensor = sensores.find(s => s.id === id);\nif (!sensor) return [null, null, { payload: 'Sensor no encontrado' }];\n\nconst rutinas = flow.get('rutinas') || [];\nconst enUso = rutinas.some(r => (r.sensorTemp && r.sensorTemp.sensorId === id) || (r.sensorHum && r.sensorHum.sensorId === id));\nif (enUso) return [null, null, { payload: 'No se puede eliminar \"' + sensor.nombre + '\": esta en uso por una o mas rutinas' }];\n\nsensores = sensores.filter(s => s.id !== id);\nglobal.set('sensoresRegistrados', sensores);\n\nlet lecturas = global.get('lecturasSensores') || {}; delete lecturas[id]; global.set('lecturasSensores', lecturas);\nlet historiales = global.get('historialSensores') || {}; delete historiales[id]; global.set('historialSensores', historiales);\n\nconst construirConfig = global.get('rzConstruirEstadoConfig');\nreturn [{ payload: construirConfig() }, {}, { payload: 'Sensor eliminado: ' + sensor.nombre }];",
-        "outputs": 3,
-        "x": 900,
-        "y": 980,
-        "wires": [
-            [
-                "rz_tpl_config"
-            ],
-            [
-                "rz_fn_guardar"
-            ],
-            [
-                "rz_ui_text_confirm_config"
-            ]
-        ]
+        "id": "cmt-2",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "2 · GET /api/devices — la app llama a esto al abrirse",
+        "info": "",
+        "x": 260,
+        "y": 180,
+        "wires": []
     },
     {
-        "id": "auth_http_admin_delete",
+        "id": "http-get-devices",
         "type": "http in",
-        "z": "auth_tab",
-        "name": "POST /riego-auth/admin/users/delete",
-        "url": "/riego-auth/admin/users/delete",
-        "method": "post",
+        "z": "tab-casa-api",
+        "name": "",
+        "url": "/api/devices",
+        "method": "get",
         "upload": false,
         "swaggerDoc": "",
-        "x": 220,
-        "y": 500,
+        "x": 130,
+        "y": 240,
         "wires": [
             [
-                "auth_fn_admin_delete"
+                "fn-auth-1"
             ]
         ]
     },
     {
-        "id": "auth_fn_admin_delete",
+        "id": "fn-auth-1",
         "type": "function",
-        "z": "auth_tab",
-        "name": "Eliminar usuario",
-        "func": "if (!msg.req.session || !msg.req.session.user || msg.req.session.user.role !== 'admin') {\n    msg.statusCode = 403;\n    msg.payload = { error: 'Solo administradores' };\n    return msg;\n}\nconst { username } = msg.payload || {};\nif (!username) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'Falta usuario' };\n    return msg;\n}\nif (username === msg.req.session.user.username) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'No podes eliminar tu propio usuario' };\n    return msg;\n}\nconst pool = global.get('pgPool');\nreturn pool.query('DELETE FROM riego_auth.users WHERE username=$1', [username]).then(() => {\n    msg.payload = { ok: true };\n    return msg;\n}).catch(err => {\n    node.error(err, msg);\n    msg.statusCode = 500;\n    msg.payload = { error: 'Error interno' };\n    return msg;\n});",
-        "outputs": 1,
-        "x": 460,
-        "y": 500,
+        "z": "tab-casa-api",
+        "name": "Auth",
+        "func": "const token = env.get('API_TOKEN');\nif (token && msg.req.headers['x-api-token'] !== token) {\n  msg.statusCode = 401;\n  msg.payload = { error: 'token inválido' };\n  return [null, msg];\n}\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 240,
         "wires": [
             [
-                "auth_resp_admin_delete"
+                "fn-read-state"
+            ],
+            [
+                "http-res-1"
             ]
         ]
     },
     {
-        "id": "auth_resp_admin_delete",
+        "id": "fn-read-state",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Leer estado",
+        "func": "const casa = global.get('casa') || { devices: [], scenes: [], automations: [] };\nmsg.payload = {\n  devices: casa.devices,\n  scenes: casa.scenes,\n  automations: casa.automations,\n  backend: { status: 'conectado', flows: 12, ts: Date.now() }\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 240,
+        "wires": [
+            [
+                "http-res-1"
+            ]
+        ]
+    },
+    {
+        "id": "http-res-1",
         "type": "http response",
-        "z": "auth_tab",
+        "z": "tab-casa-api",
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 690,
+        "x": 650,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "cmt-3",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "3 · POST /api/device/:id — toggle, brillo, temperatura, IR",
+        "info": "",
+        "x": 270,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "http-post-device",
+        "type": "http in",
+        "z": "tab-casa-api",
+        "name": "",
+        "url": "/api/device/:id",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 380,
+        "wires": [
+            [
+                "fn-auth-2"
+            ]
+        ]
+    },
+    {
+        "id": "fn-auth-2",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Auth",
+        "func": "const token = env.get('API_TOKEN');\nif (token && msg.req.headers['x-api-token'] !== token) {\n  msg.statusCode = 401;\n  msg.payload = { error: 'token inválido' };\n  return [null, msg];\n}\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 380,
+        "wires": [
+            [
+                "fn-apply-cmd"
+            ],
+            [
+                "http-res-2"
+            ]
+        ]
+    },
+    {
+        "id": "fn-apply-cmd",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Aplicar comando",
+        "func": "// Valida, actualiza global.casa y prepara msg para el driver del fabricante.\nconst casa = global.get('casa');\nconst id = msg.req.params.id;\nconst dev = (casa.devices || []).find(d => d.id === id);\nif (!dev) { msg.statusCode = 404; msg.payload = { error: 'dispositivo desconocido: ' + id }; return [null, msg]; }\n\nconst body = msg.payload || {};\nif (typeof body.on === 'boolean') dev.on = body.on;\nif (typeof body.level === 'number') { dev.level = Math.max(1, Math.min(100, body.level)); dev.on = dev.level > 0; }\nif (typeof body.target === 'number') dev.target = Math.max(10, Math.min(30, body.target));\nif (typeof body.mode === 'string') dev.mode = body.mode;\nif (dev.nominal) dev.watts = dev.on ? Math.round(dev.nominal * ((dev.level ?? 100) / 100)) : 0;\n\nglobal.set('casa', casa);\n\nmsg.device = dev;\nmsg.command = body;\nmsg.vendor = dev.vendor;\nmsg.payload = { ok: true, device: dev };\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 380,
+        "wires": [
+            [
+                "sw-vendor",
+                "ws-out",
+                "http-res-2"
+            ],
+            [
+                "http-res-2"
+            ]
+        ]
+    },
+    {
+        "id": "sw-vendor",
+        "type": "switch",
+        "z": "tab-casa-api",
+        "name": "por fabricante",
+        "property": "vendor",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "tuya",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "sonoff",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "broadlink",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "nest",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 4,
+        "x": 700,
+        "y": 440,
+        "wires": [
+            [
+                "fn-drv-tuya"
+            ],
+            [
+                "fn-drv-sonoff"
+            ],
+            [
+                "fn-drv-broadlink"
+            ],
+            [
+                "fn-drv-nest"
+            ]
+        ]
+    },
+    {
+        "id": "fn-drv-tuya",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "PLACEHOLDER · Tuya LAN",
+        "func": "// Sustituye este nodo por 'tuya-smart-device' (node-red-contrib-tuya-smart-device).\n// Ese nodo espera, por ejemplo:  { operation:'SET', dps:{ '1': true, '2': 700 } }\nconst d = msg.device;\nmsg.payload = { operation: 'SET', dps: d.kind === 'dimmer'\n  ? { '1': d.on, '2': Math.round((d.level || 0) * 10) }   // dp2 = brillo 0-1000\n  : { '1': d.on } };\nnode.status({ fill: 'blue', shape: 'dot', text: d.name + ' → ' + (d.on ? 'ON' : 'OFF') });\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 360,
+        "wires": [
+            [
+                "dbg-cmd"
+            ]
+        ]
+    },
+    {
+        "id": "fn-drv-sonoff",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Sonoff · Tasmota MQTT",
+        "func": "// Tasmota: cmnd/<topic>/POWER  con payload ON|OFF\nconst d = msg.device;\nmsg.topic = 'cmnd/' + d.topic + '/POWER';\nmsg.payload = d.on ? 'ON' : 'OFF';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 420,
+        "wires": [
+            [
+                "mqtt-out"
+            ]
+        ]
+    },
+    {
+        "id": "fn-drv-broadlink",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "PLACEHOLDER · Broadlink IR",
+        "func": "// Sustituye por el nodo de node-red-contrib-broadlink-control con el código aprendido.\n// La app envía { ir: 'POWER' | 'COOL_24' | 'FAN' ... }\nconst code = (msg.command && msg.command.ir) || (msg.device.on ? 'POWER_ON' : 'POWER_OFF');\nmsg.payload = { action: 'send', code };\nnode.status({ fill: 'blue', shape: 'dot', text: 'IR → ' + code });\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 480,
+        "wires": [
+            [
+                "dbg-cmd"
+            ]
+        ]
+    },
+    {
+        "id": "fn-drv-nest",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "PLACEHOLDER · Nest SDM",
+        "func": "// Sustituye por un 'http request' POST con OAuth a Google SDM:\n// https://smartdevicemanagement.googleapis.com/v1/<devId>:executeCommand\nconst d = msg.device;\nmsg.url = 'https://smartdevicemanagement.googleapis.com/v1/' + d.devId + ':executeCommand';\nmsg.headers = { Authorization: 'Bearer ' + (env.get('NEST_TOKEN') || '<token>'), 'Content-Type': 'application/json' };\nmsg.payload = {\n  command: 'sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat',\n  params: { heatCelsius: d.target }\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 540,
+        "wires": [
+            [
+                "dbg-cmd"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-out",
+        "type": "mqtt out",
+        "z": "tab-casa-api",
+        "name": "MQTT →",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "broker-local",
+        "x": 1210,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "dbg-cmd",
+        "type": "debug",
+        "z": "tab-casa-api",
+        "name": "comando saliente",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1220,
         "y": 500,
+        "wires": []
+    },
+    {
+        "id": "http-res-2",
+        "type": "http response",
+        "z": "tab-casa-api",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 700,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "cmt-4",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "4 · POST /api/scene/:id — dispara varios dispositivos en cadena",
+        "info": "",
+        "x": 290,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "http-post-scene",
+        "type": "http in",
+        "z": "tab-casa-api",
+        "name": "",
+        "url": "/api/scene/:id",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 680,
+        "wires": [
+            [
+                "fn-scene"
+            ]
+        ]
+    },
+    {
+        "id": "fn-scene",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Ejecutar escena",
+        "func": "const casa = global.get('casa');\nconst scene = (casa.scenes || []).find(s => s.id === msg.req.params.id);\nif (!scene) { msg.statusCode = 404; msg.payload = { error: 'escena desconocida' }; return [null, msg]; }\n\nconst out = [];\nfor (const step of scene.steps) {\n  const dev = casa.devices.find(d => d.id === step.id);\n  if (!dev) continue;\n  if (typeof step.on === 'boolean') dev.on = step.on;\n  if (typeof step.level === 'number') { dev.level = step.level; dev.on = true; }\n  if (typeof step.target === 'number') dev.target = step.target;\n  if (dev.nominal) dev.watts = dev.on ? Math.round(dev.nominal * ((dev.level ?? 100) / 100)) : 0;\n  out.push({ device: dev, command: step, vendor: dev.vendor, payload: {} });\n}\nglobal.set('casa', casa);\n\nmsg.payload = { ok: true, scene: scene.id, applied: out.length };\nreturn [msg, out.length ? [out] : null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 680,
+        "wires": [
+            [
+                "http-res-3",
+                "ws-out"
+            ],
+            [
+                "sw-vendor"
+            ]
+        ]
+    },
+    {
+        "id": "http-res-3",
+        "type": "http response",
+        "z": "tab-casa-api",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 590,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "cmt-5",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "5 · POST /api/automation/:id — activar o pausar una regla",
+        "info": "",
+        "x": 280,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "http-post-auto",
+        "type": "http in",
+        "z": "tab-casa-api",
+        "name": "",
+        "url": "/api/automation/:id",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 800,
+        "wires": [
+            [
+                "fn-auto"
+            ]
+        ]
+    },
+    {
+        "id": "fn-auto",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Activar / pausar",
+        "func": "const casa = global.get('casa');\nconst a = (casa.automations || []).find(x => x.id === msg.req.params.id);\nif (!a) { msg.statusCode = 404; msg.payload = { error: 'automatización desconocida' }; return msg; }\na.on = typeof msg.payload.on === 'boolean' ? msg.payload.on : !a.on;\nglobal.set('casa', casa);\n// Los flujos de automatización deben consultar global.casa.automations antes de actuar,\n// o usa este flag para habilitar/deshabilitar nodos 'cron-plus' / 'inject'.\nmsg.payload = { ok: true, automation: a };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 800,
+        "wires": [
+            [
+                "http-res-4",
+                "ws-out"
+            ]
+        ]
+    },
+    {
+        "id": "http-res-4",
+        "type": "http response",
+        "z": "tab-casa-api",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 590,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "cmt-6",
+        "type": "comment",
+        "z": "tab-casa-api",
+        "name": "6 · Estado entrante (MQTT/Tasmota) → WebSocket a la app",
+        "info": "",
+        "x": 280,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "mqtt-in-stat",
+        "type": "mqtt in",
+        "z": "tab-casa-api",
+        "name": "stat/+/RESULT",
+        "topic": "stat/+/RESULT",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "broker-local",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 160,
+        "y": 940,
+        "wires": [
+            [
+                "fn-ingest"
+            ]
+        ]
+    },
+    {
+        "id": "fn-ingest",
+        "type": "function",
+        "z": "tab-casa-api",
+        "name": "Actualizar estado",
+        "func": "// Tasmota publica stat/<topic>/RESULT {\"POWER\":\"ON\"} — también cuando alguien\n// pulsa el interruptor físico, así la app se mantiene sincronizada.\nconst casa = global.get('casa');\nconst topic = msg.topic.split('/')[1];\nconst dev = (casa.devices || []).find(d => d.topic === topic);\nif (!dev) return null;\n\nif (msg.payload && msg.payload.POWER) {\n  dev.on = msg.payload.POWER === 'ON';\n  dev.online = true;\n  if (dev.nominal) dev.watts = dev.on ? dev.nominal : 0;\n}\nif (msg.payload && msg.payload.ENERGY && typeof msg.payload.ENERGY.Power === 'number') {\n  dev.watts = msg.payload.ENERGY.Power;\n}\nglobal.set('casa', casa);\nmsg.payload = { event: 'device', device: dev };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 940,
+        "wires": [
+            [
+                "ws-out"
+            ]
+        ]
+    },
+    {
+        "id": "ws-out",
+        "type": "websocket out",
+        "z": "tab-casa-api",
+        "name": "→ app (ws)",
+        "server": "ws-server-casa",
+        "client": "",
+        "x": 610,
+        "y": 940,
         "wires": []
     }
 ]

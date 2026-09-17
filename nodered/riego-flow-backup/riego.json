@@ -350,7 +350,45 @@
       "duracionMs": null
     }
   ],
-  "rutinas": [],
+  "rutinas": [
+    {
+      "id": 1787590191458,
+      "nombre": "test",
+      "enabled": false,
+      "usarHorario": true,
+      "usarSensor": false,
+      "start": "1250",
+      "end": "1340",
+      "dias": "1",
+      "sensorTemp": {
+        "activa": false,
+        "operador": "mayor",
+        "umbral": null,
+        "sensorId": null
+      },
+      "sensorHum": {
+        "activa": false,
+        "operador": "mayor",
+        "umbral": null,
+        "sensorId": null
+      },
+      "sensorCombinador": "o",
+      "duracion": 20,
+      "duracionUnidad": "segundos",
+      "intervalo": 1,
+      "maxValvulas": 2,
+      "valvulaIds": [
+        1787282852789,
+        1787283177562,
+        1787282861686,
+        1787285126121,
+        1787330814823,
+        1787330825024,
+        1787330835000,
+        1787330847437
+      ]
+    }
+  ],
   "config": {
     "modoAutomatico": true,
     "watchdogMinutos": 60,
