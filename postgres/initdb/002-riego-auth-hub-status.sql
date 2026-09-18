@@ -13,7 +13,11 @@ CREATE TABLE IF NOT EXISTS riego_auth.hub_status (
     id            SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     last_ok_at    TIMESTAMPTZ,
     last_check_at TIMESTAMPTZ,
-    revoked       BOOLEAN NOT NULL DEFAULT false
+    revoked       BOOLEAN NOT NULL DEFAULT false,
+    -- Nombre que devuelve el Hub en cada heartbeat exitoso. Asi el Edge no
+    -- necesita RIEGO_AREA_NAME propio: alcanza con RIEGO_AREA_ID+KEY para
+    -- que el area "aparezca" con el nombre correcto (ver auth_fn_me).
+    area_name     TEXT
 );
 
 INSERT INTO riego_auth.hub_status (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
