@@ -3634,13 +3634,13 @@
         "id": "hub_hb_inject",
         "type": "inject",
         "z": "auth_tab",
-        "name": "Heartbeat al Hub (cada 10 min)",
+        "name": "Heartbeat al Hub (cada 30s)",
         "props": [
             {
                 "p": "payload"
             }
         ],
-        "repeat": "600",
+        "repeat": "30",
         "crontab": "",
         "once": true,
         "onceDelay": 8,
