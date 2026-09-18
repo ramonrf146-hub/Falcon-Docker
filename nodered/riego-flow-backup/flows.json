@@ -3739,7 +3739,7 @@
     {
         "id": "hub_fn_apply_structure",
         "type": "function",
-        "z": "auth_tab",
+        "z": "rz_tab",
         "name": "Aplicar estructura del Hub",
         "outputs": 4,
         "timeout": 0,
