@@ -17,7 +17,11 @@ CREATE TABLE IF NOT EXISTS riego_auth.hub_status (
     -- Nombre que devuelve el Hub en cada heartbeat exitoso. Asi el Edge no
     -- necesita RIEGO_AREA_NAME propio: alcanza con RIEGO_AREA_ID+KEY para
     -- que el area "aparezca" con el nombre correcto (ver auth_fn_me).
-    area_name     TEXT
+    area_name     TEXT,
+    -- Version de la estructura (zonas/valvulas/sensores/ajustes) que el Hub
+    -- le mando la ultima vez (Etapa 3). Se manda en cada heartbeat; si no
+    -- coincide con la del Hub, este devuelve la estructura nueva completa.
+    structure_version INTEGER NOT NULL DEFAULT 0
 );
 
 INSERT INTO riego_auth.hub_status (id) VALUES (1) ON CONFLICT (id) DO NOTHING;

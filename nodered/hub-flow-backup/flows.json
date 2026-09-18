@@ -29,7 +29,7 @@
         "type": "function",
         "z": "hub_tab",
         "name": "hub_fn_list",
-        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.revoke{background:#b42318;color:#fff}.reactivate{background:#1a7f37;color:#fff}.rotate{background:#946200;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}</style></head>' +\n        '<body><h2>🌱 Riego Hub — administración de áreas</h2>' + body + '</body></html>';\n}\n\nglobal.get('pgPool').query('SELECT id, name, status, last_heartbeat_at FROM riego_hub.areas ORDER BY created_at')\n    .then(function(result) {\n        var rows = result.rows.map(function(a) {\n            var estado = a.status === 'revoked' ? '<span class=\"bad\">revocada</span>' : '<span class=\"ok\">activa</span>';\n            var hb = a.last_heartbeat_at ? new Date(a.last_heartbeat_at).toLocaleString('es-AR') : 'nunca';\n            var toggle = a.status === 'revoked'\n                ? '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/reactivate\"><button class=\"reactivate\">Reactivar</button></form>'\n                : '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/revoke\"><button class=\"revoke\">Revocar</button></form>';\n            var rotate = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/rotate-key\" onsubmit=\"return confirm(\\'Esto invalida la key actual del area. Confirmar?\\');\"><button class=\"rotate\">Rotar key</button></form>';\n            return '<tr><td>' + esc(a.id) + '</td><td>' + esc(a.name) + '</td><td>' + estado + '</td><td>' + esc(hb) + '</td><td>' + toggle + ' ' + rotate + '</td></tr>';\n        }).join('');\n        if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay areas creadas.</td></tr>';\n        var body = '<table><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Ultimo heartbeat</th><th>Acciones</th></tr>' + rows + '</table>' +\n            '<fieldset><legend>Crear area nueva</legend>' +\n            '<form method=\"POST\" action=\"/hub/areas\">' +\n            '<label>Nombre<input name=\"name\" required placeholder=\"Ej: Finca Norte\"></label>' +\n            '<label>ID (opcional, se genera del nombre si se deja vacio)<input name=\"id\" placeholder=\"Ej: finca-norte\"></label>' +\n            '<label>Key existente (opcional -- para dar de alta un area que ya tiene una key funcionando, sin rotarla)<input name=\"existing_key\" placeholder=\"Dejar vacio para generar una key nueva\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear area</button></p>' +\n            '</form></fieldset>';\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Riego Hub', body);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Error', '<p>Error consultando areas: ' + esc(err.message) + '</p>');\n        node.send(msg);\n    });\nreturn null;\n",
+        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.revoke{background:#b42318;color:#fff}.reactivate{background:#1a7f37;color:#fff}.rotate{background:#946200;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}</style></head>' +\n        '<body><h2>🌱 Riego Hub — administración de áreas</h2>' + body + '</body></html>';\n}\n\nglobal.get('pgPool').query('SELECT id, name, status, last_heartbeat_at FROM riego_hub.areas ORDER BY created_at')\n    .then(function(result) {\n        var rows = result.rows.map(function(a) {\n            var estado = a.status === 'revoked' ? '<span class=\"bad\">revocada</span>' : '<span class=\"ok\">activa</span>';\n            var hb = a.last_heartbeat_at ? new Date(a.last_heartbeat_at).toLocaleString('es-AR') : 'nunca';\n            var toggle = a.status === 'revoked'\n                ? '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/reactivate\"><button class=\"reactivate\">Reactivar</button></form>'\n                : '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/revoke\"><button class=\"revoke\">Revocar</button></form>';\n            var rotate = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/rotate-key\" onsubmit=\"return confirm(\\'Esto invalida la key actual del area. Confirmar?\\');\"><button class=\"rotate\">Rotar key</button></form>';\n            return '<tr><td>' + esc(a.id) + '</td><td>' + esc(a.name) + '</td><td>' + estado + '</td><td>' + esc(hb) + '</td><td>' + toggle + ' ' + rotate + ' ' + estructura + '</td></tr>';\n        }).join('');\n        if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay areas creadas.</td></tr>';\n        var body = '<table><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Ultimo heartbeat</th><th>Acciones</th></tr>' + rows + '</table>' +\n            '<fieldset><legend>Crear area nueva</legend>' +\n            '<form method=\"POST\" action=\"/hub/areas\">' +\n            '<label>Nombre<input name=\"name\" required placeholder=\"Ej: Finca Norte\"></label>' +\n            '<label>ID (opcional, se genera del nombre si se deja vacio)<input name=\"id\" placeholder=\"Ej: finca-norte\"></label>' +\n            '<label>Key existente (opcional -- para dar de alta un area que ya tiene una key funcionando, sin rotarla)<input name=\"existing_key\" placeholder=\"Dejar vacio para generar una key nueva\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear area</button></p>' +\n            '</form></fieldset>';\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Riego Hub', body);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Error', '<p>Error consultando areas: ' + esc(err.message) + '</p>');\n        node.send(msg);\n    });\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -279,7 +279,7 @@
         "type": "function",
         "z": "hub_tab",
         "name": "hub_fn_heartbeat",
-        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nif (!areaId || !areaKey) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, reason: 'missing_fields' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT name, key_hash, status FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(result) {\n        var area = result.rows[0];\n        if (!area || area.key_hash !== keyHash) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, reason: 'invalid_key' };\n            return node.send(msg);\n        }\n        if (area.status === 'revoked') {\n            msg.statusCode = 403;\n            msg.payload = { ok: false, reason: 'revoked' };\n            return node.send(msg);\n        }\n        var ip = (msg.req.headers['x-forwarded-for'] || (msg.req.connection && msg.req.connection.remoteAddress) || '').toString();\n        global.get('pgPool').query(\n            'UPDATE riego_hub.areas SET last_heartbeat_at = now(), last_heartbeat_ip = $2 WHERE id = $1',\n            [areaId, ip]\n        ).finally(function() {\n            msg.statusCode = 200;\n            msg.payload = { ok: true, area_name: area.name, server_time: new Date().toISOString() };\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, reason: 'internal_error' };\n        node.send(msg);\n    });\nreturn null;\n",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nif (!areaId || !areaKey) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, reason: 'missing_fields' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT name, key_hash, status, structure_version, structure FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(result) {\n        var area = result.rows[0];\n        if (!area || area.key_hash !== keyHash) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, reason: 'invalid_key' };\n            return node.send(msg);\n        }\n        if (area.status === 'revoked') {\n            msg.statusCode = 403;\n            msg.payload = { ok: false, reason: 'revoked' };\n            return node.send(msg);\n        }\n        var ip = (msg.req.headers['x-forwarded-for'] || (msg.req.connection && msg.req.connection.remoteAddress) || '').toString();\n        global.get('pgPool').query(\n            'UPDATE riego_hub.areas SET last_heartbeat_at = now(), last_heartbeat_ip = $2 WHERE id = $1',\n            [areaId, ip]\n        ).finally(function() {\n            var clientVersion = Number(body.structure_version) || 0;\n            var payload = { ok: true, area_name: area.name, server_time: new Date().toISOString(), structure_version: area.structure_version };\n            if (clientVersion !== area.structure_version) {\n                payload.structure = area.structure;\n            }\n            msg.statusCode = 200;\n            msg.payload = payload;\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, reason: 'internal_error' };\n        node.send(msg);\n    });\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -356,6 +356,574 @@
         "headers": {},
         "x": 680,
         "y": 640,
+        "wires": []
+    },
+    {
+        "id": "hubst_n1",
+        "type": "inject",
+        "z": "hub_tab",
+        "name": "Cargar helpers de estructura",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.3,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 220,
+        "y": 1170,
+        "wires": [
+            [
+                "hubst_n2"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n2",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "Defaults de estructura",
+        "outputs": 0,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 1170,
+        "func": "\nfunction loadStructure(areaId) {\n    return global.get('pgPool').query('SELECT structure, structure_version FROM riego_hub.areas WHERE id = $1', [areaId])\n        .then(function(result) {\n            if (!result.rows[0]) return null;\n            var s = result.rows[0].structure || {};\n            return {\n                zonas: Array.isArray(s.zonas) ? s.zonas : [],\n                valvulas: Array.isArray(s.valvulas) ? s.valvulas : [],\n                sensores: Array.isArray(s.sensores) ? s.sensores : [],\n                config: Object.assign({ watchdogMinutos: 60 }, s.config || {}),\n                version: result.rows[0].structure_version\n            };\n        });\n}\nfunction saveStructure(areaId, structure) {\n    var toSave = { zonas: structure.zonas, valvulas: structure.valvulas, sensores: structure.sensores, config: structure.config };\n    return global.get('pgPool').query(\n        'UPDATE riego_hub.areas SET structure = $2, structure_version = structure_version + 1 WHERE id = $1',\n        [areaId, JSON.stringify(toSave)]\n    );\n}\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\nglobal.set('hubLoadStructure', loadStructure);\nglobal.set('hubSaveStructure', saveStructure);\nglobal.set('hubEsc', esc);\nreturn null;\n"
+    },
+    {
+        "id": "hubst_n3",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "GET /hub/areas/:id/estructura",
+        "url": "/hub/areas/:id/estructura",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1240,
+        "wires": [
+            [
+                "hubst_n4"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n4",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_page",
+        "func": "var esc = global.get('hubEsc');\n\nfunction page(areaId, areaNombre, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>Estructura - ' + esc(areaNombre) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:900px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:10px 0}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:13px;vertical-align:top}' +\n        'th{background:#0E7C86;color:#fff}h3{margin-top:36px}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.del{background:#b42318;color:#fff}.save{background:#1a7f37;color:#fff}.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}' +\n        'fieldset{margin-top:16px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:8px 0;font-size:12px}' +\n        'input,select{padding:5px;width:100%;box-sizing:border-box;font-size:13px}' +\n        '.editform input, .editform select{width:80px; display:inline-block; margin:0 4px 0 0}</style></head>' +\n        '<body><p><a href=\"/hub/areas\">&larr; Areas</a></p>' +\n        '<h2>🔧 Estructura de ' + esc(areaNombre) + '</h2>' + body + '</body></html>';\n}\n\nvar areaId = msg.req.params.id;\nglobal.get('pgPool').query('SELECT name FROM riego_hub.areas WHERE id = $1', [areaId]).then(function(areaResult) {\n    if (!areaResult.rows[0]) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var areaNombre = areaResult.rows[0].name;\n    global.get('hubLoadStructure')(areaId).then(function(s) {\n        var zonasRows = s.zonas.map(function(z) {\n            var valvulasDeZona = s.valvulas.filter(function(v) { return v.zonaId === z.id; });\n            var valvulasHtml = valvulasDeZona.map(function(v) {\n                return '<tr><td colspan=\"2\" style=\"padding-left:20px;\">&#8627; ' + esc(v.nombre) + ' (canal ' + v.canal + ')</td>' +\n                    '<td>' +\n                    '<form class=\"inline editform\" method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/valvulas/' + v.id + '/editar\">' +\n                    '<input name=\"nombre\" value=\"' + esc(v.nombre) + '\" placeholder=\"Nombre\">' +\n                    '<input type=\"number\" name=\"canal\" value=\"' + v.canal + '\" placeholder=\"Canal\">' +\n                    '<button class=\"save\" type=\"submit\">Guardar</button></form> ' +\n                    '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/valvulas/' + v.id + '/eliminar\" onsubmit=\"return confirm(\\'Eliminar valvula ' + esc(v.nombre).replace(/'/g, \"\\\\'\") + '?\\');\">' +\n                    '<button class=\"del\" type=\"submit\">Eliminar</button></form>' +\n                    '</td></tr>';\n            }).join('');\n            return '<tr><td>' + esc(z.nombre) + '</td><td>Unit ' + z.unitid + ' &middot; ' + z.canalesTarjeta + ' canales &middot; max ' + z.maxSimultaneas + ' a la vez</td>' +\n                '<td>' +\n                '<form class=\"inline editform\" method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/zonas/' + z.id + '/editar\">' +\n                '<input name=\"nombre\" value=\"' + esc(z.nombre) + '\" placeholder=\"Nombre\">' +\n                '<input type=\"number\" name=\"unitid\" value=\"' + z.unitid + '\" placeholder=\"Unit ID\">' +\n                '<input type=\"number\" name=\"canalesTarjeta\" value=\"' + z.canalesTarjeta + '\" placeholder=\"Canales\">' +\n                '<input type=\"number\" name=\"maxSimultaneas\" value=\"' + z.maxSimultaneas + '\" placeholder=\"Max\">' +\n                '<button class=\"save\" type=\"submit\">Guardar</button></form> ' +\n                '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/zonas/' + z.id + '/eliminar\" onsubmit=\"return confirm(\\'Eliminar zona ' + esc(z.nombre).replace(/'/g, \"\\\\'\") + ' y sus valvulas?\\');\">' +\n                '<button class=\"del\" type=\"submit\">Eliminar</button></form>' +\n                '</td></tr>' + valvulasHtml;\n        }).join('');\n        if (!zonasRows) zonasRows = '<tr><td colspan=\"3\">Todavia no hay zonas.</td></tr>';\n\n        var opcionesZonas = s.zonas.map(function(z) { return '<option value=\"' + z.id + '\">' + esc(z.nombre) + ' (Unit ' + z.unitid + ')</option>'; }).join('');\n\n        var sensoresRows = s.sensores.map(function(sn) {\n            var origen = sn.fuente === 'mqtt' ? ('MQTT ' + esc(sn.mqttDevEui) + ' / ' + esc(sn.mqttPath)) : ('HA ' + esc(sn.haEntityId));\n            return '<tr><td>' + esc(sn.nombre) + '</td><td>' + esc(sn.tipo) + ' (' + esc(sn.unidad) + ')</td><td>' + origen + '</td>' +\n                '<td><form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/sensores/' + sn.id + '/eliminar\" onsubmit=\"return confirm(\\'Eliminar sensor ' + esc(sn.nombre).replace(/'/g, \"\\\\'\") + '?\\');\">' +\n                '<button class=\"del\" type=\"submit\">Eliminar</button></form></td></tr>';\n        }).join('');\n        if (!sensoresRows) sensoresRows = '<tr><td colspan=\"4\">Todavia no hay sensores.</td></tr>';\n\n        var body =\n            '<h3>Zonas (tarjetas Modbus)</h3>' +\n            '<table><tr><th>Nombre</th><th>Detalle</th><th>Acciones</th></tr>' + zonasRows + '</table>' +\n            '<fieldset><legend>Crear zona</legend><form method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/zonas\">' +\n            '<label>Nombre<input name=\"nombre\" required></label>' +\n            '<label>Unit ID (Modbus)<input type=\"number\" name=\"unitid\" required></label>' +\n            '<label>Canales de la tarjeta<input type=\"number\" name=\"canalesTarjeta\" value=\"8\" required></label>' +\n            '<label>Max valvulas a la vez<input type=\"number\" name=\"maxSimultaneas\" value=\"1\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear zona</button></p></form></fieldset>' +\n\n            (s.zonas.length ? (\n                '<fieldset><legend>Agregar valvula</legend><form method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/valvulas\">' +\n                '<label>Zona<select name=\"zonaId\">' + opcionesZonas + '</select></label>' +\n                '<label>Nombre<input name=\"nombre\" required></label>' +\n                '<label>Canal (coil)<input type=\"number\" name=\"canal\" required></label>' +\n                '<p><button class=\"create\" type=\"submit\">Agregar valvula</button></p></form></fieldset>'\n            ) : '<p><em>Cre&aacute; una zona primero para poder agregarle valvulas.</em></p>') +\n\n            '<h3>Sensores</h3>' +\n            '<table><tr><th>Nombre</th><th>Tipo</th><th>Origen</th><th>Acciones</th></tr>' + sensoresRows + '</table>' +\n            '<fieldset><legend>Crear sensor</legend><form method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/sensores\">' +\n            '<label>Nombre<input name=\"nombre\" required></label>' +\n            '<label>Tipo<select name=\"tipo\"><option value=\"temperatura\">Temperatura</option><option value=\"humedad\">Humedad</option><option value=\"par\">PAR (luz)</option><option value=\"otro\">Otro</option></select></label>' +\n            '<label>Unidad<input name=\"unidad\" placeholder=\"&deg;F, %, ...\"></label>' +\n            '<label>Fuente<select name=\"fuente\"><option value=\"home_assistant\">Home Assistant</option><option value=\"mqtt\">MQTT (Dragino/ChirpStack)</option></select></label>' +\n            '<label>Entity ID de Home Assistant (si aplica)<input name=\"haEntityId\" placeholder=\"sensor.mi_sensor\"></label>' +\n            '<label>Dev EUI (si es MQTT)<input name=\"mqttDevEui\"></label>' +\n            '<label>Campo en el payload (si es MQTT)<input name=\"mqttPath\" placeholder=\"object.TempC1\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear sensor</button></p></form></fieldset>' +\n\n            '<h3>Ajustes generales</h3>' +\n            '<form method=\"POST\" action=\"/hub/areas/' + esc(areaId) + '/ajustes\">' +\n            '<label>Cierre de seguridad (minutos)<input type=\"number\" name=\"watchdogMinutos\" value=\"' + s.config.watchdogMinutos + '\" style=\"width:100px\"></label>' +\n            '<p><button class=\"save\" type=\"submit\">Guardar ajustes</button></p></form>' +\n\n            '<p style=\"color:#5C6B78; font-size:12px; margin-top:30px;\">Version de estructura actual: ' + s.version + '. El Edge la toma en su proximo heartbeat (hasta 10 minutos, o al instante si se lo dispara manualmente).</p>';\n\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page(areaId, areaNombre, body);\n        node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1240,
+        "wires": [
+            [
+                "hubst_n5"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n5",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1240,
+        "wires": []
+    },
+    {
+        "id": "hubst_n6",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/zonas",
+        "url": "/hub/areas/:id/zonas",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1310,
+        "wires": [
+            [
+                "hubst_n7"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n7",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_crear_zona",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var nombre = (body.nombre || '').trim();\n    var unitid = Number(body.unitid);\n    var canalesTarjeta = Number(body.canalesTarjeta);\n    var maxSimultaneas = Math.max(1, Number(body.maxSimultaneas) || 1);\n    if (!nombre || body.unitid === undefined || body.unitid === '' || isNaN(unitid) || !canalesTarjeta || canalesTarjeta < 1) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Faltan datos validos. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (s.zonas.some(function(z) { return Number(z.unitid) === unitid; })) {\n        msg.statusCode = 409; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Ya existe una zona con ese Unit ID. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    s.zonas.push({ id: Date.now(), nombre: nombre, unitid: unitid, canalesTarjeta: canalesTarjeta, maxSimultaneas: maxSimultaneas, habilitada: true, alarma: false });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1310,
+        "wires": [
+            [
+                "hubst_n8"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n8",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1310,
+        "wires": []
+    },
+    {
+        "id": "hubst_n9",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/zonas/:zonaId/editar",
+        "url": "/hub/areas/:id/zonas/:zonaId/editar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1380,
+        "wires": [
+            [
+                "hubst_n10"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n10",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_editar_zona",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar zonaId = Number(msg.req.params.zonaId);\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var zona = s.zonas.find(function(z) { return z.id === zonaId; });\n    if (!zona) { msg.statusCode = 404; msg.payload = 'Zona no encontrada'; return node.send(msg); }\n    var nombre = (body.nombre || '').trim();\n    var unitid = Number(body.unitid);\n    var canalesTarjeta = Number(body.canalesTarjeta);\n    var maxSimultaneas = Math.max(1, Number(body.maxSimultaneas) || 1);\n    if (!nombre || isNaN(unitid) || !canalesTarjeta || canalesTarjeta < 1) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Faltan datos validos. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (s.zonas.some(function(z) { return z.id !== zonaId && Number(z.unitid) === unitid; })) {\n        msg.statusCode = 409; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Ya existe otra zona con ese Unit ID. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    zona.nombre = nombre; zona.unitid = unitid; zona.canalesTarjeta = canalesTarjeta; zona.maxSimultaneas = maxSimultaneas;\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1380,
+        "wires": [
+            [
+                "hubst_n11"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n11",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1380,
+        "wires": []
+    },
+    {
+        "id": "hubst_n12",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/zonas/:zonaId/eliminar",
+        "url": "/hub/areas/:id/zonas/:zonaId/eliminar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1450,
+        "wires": [
+            [
+                "hubst_n13"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n13",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_eliminar_zona",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar zonaId = Number(msg.req.params.zonaId);\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    s.zonas = s.zonas.filter(function(z) { return z.id !== zonaId; });\n    s.valvulas = s.valvulas.filter(function(v) { return v.zonaId !== zonaId; });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1450,
+        "wires": [
+            [
+                "hubst_n14"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n14",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1450,
+        "wires": []
+    },
+    {
+        "id": "hubst_n15",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/valvulas",
+        "url": "/hub/areas/:id/valvulas",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1520,
+        "wires": [
+            [
+                "hubst_n16"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n16",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_crear_valvula",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var zonaId = Number(body.zonaId);\n    var zona = s.zonas.find(function(z) { return z.id === zonaId; });\n    if (!zona) { msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' }; msg.payload = '<p>Zona invalida. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>'; return node.send(msg); }\n    var nombre = (body.nombre || '').trim();\n    var canal = Number(body.canal);\n    if (!nombre || body.canal === undefined || body.canal === '' || isNaN(canal)) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Faltan datos validos. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (canal < 0 || canal >= zona.canalesTarjeta) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Canal fuera de rango para esa zona (0 a ' + (zona.canalesTarjeta - 1) + '). <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (s.valvulas.some(function(v) { return v.zonaId === zonaId && Number(v.canal) === canal; })) {\n        msg.statusCode = 409; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Ese canal ya esta usado en esa zona. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    s.valvulas.push({ id: Date.now(), zonaId: zonaId, nombre: nombre, canal: canal });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1520,
+        "wires": [
+            [
+                "hubst_n17"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n17",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1520,
+        "wires": []
+    },
+    {
+        "id": "hubst_n18",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/valvulas/:valvulaId/editar",
+        "url": "/hub/areas/:id/valvulas/:valvulaId/editar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1590,
+        "wires": [
+            [
+                "hubst_n19"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n19",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_editar_valvula",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar valvulaId = Number(msg.req.params.valvulaId);\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var valvula = s.valvulas.find(function(v) { return v.id === valvulaId; });\n    if (!valvula) { msg.statusCode = 404; msg.payload = 'Valvula no encontrada'; return node.send(msg); }\n    var zona = s.zonas.find(function(z) { return z.id === valvula.zonaId; });\n    var nombre = (body.nombre || '').trim();\n    var canal = Number(body.canal);\n    if (!nombre || isNaN(canal)) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Faltan datos validos. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (zona && (canal < 0 || canal >= zona.canalesTarjeta)) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Canal fuera de rango para esa zona. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    if (s.valvulas.some(function(v) { return v.id !== valvulaId && v.zonaId === valvula.zonaId && Number(v.canal) === canal; })) {\n        msg.statusCode = 409; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Ese canal ya esta usado en esa zona. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    valvula.nombre = nombre; valvula.canal = canal;\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1590,
+        "wires": [
+            [
+                "hubst_n20"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n20",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1590,
+        "wires": []
+    },
+    {
+        "id": "hubst_n21",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/valvulas/:valvulaId/eliminar",
+        "url": "/hub/areas/:id/valvulas/:valvulaId/eliminar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1660,
+        "wires": [
+            [
+                "hubst_n22"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n22",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_eliminar_valvula",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar valvulaId = Number(msg.req.params.valvulaId);\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    s.valvulas = s.valvulas.filter(function(v) { return v.id !== valvulaId; });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1660,
+        "wires": [
+            [
+                "hubst_n23"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n23",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1660,
+        "wires": []
+    },
+    {
+        "id": "hubst_n24",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/sensores",
+        "url": "/hub/areas/:id/sensores",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1730,
+        "wires": [
+            [
+                "hubst_n25"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n25",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_crear_sensor",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var nombre = (body.nombre || '').trim();\n    if (!nombre || !body.fuente) {\n        msg.statusCode = 400; msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = '<p>Faltan datos validos. <a href=\"/hub/areas/' + esc(areaId) + '/estructura\">Volver</a></p>';\n        return node.send(msg);\n    }\n    s.sensores.push({\n        id: Date.now(), nombre: nombre, tipo: body.tipo || 'otro', unidad: (body.unidad || '').trim(),\n        fuente: body.fuente, habilitado: true,\n        haEntityId: body.fuente === 'home_assistant' ? (body.haEntityId || '').trim() : '',\n        mqttDevEui: body.fuente === 'mqtt' ? (body.mqttDevEui || '').trim() : '',\n        mqttPath: body.fuente === 'mqtt' ? (body.mqttPath || '').trim() : ''\n    });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1730,
+        "wires": [
+            [
+                "hubst_n26"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n26",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1730,
+        "wires": []
+    },
+    {
+        "id": "hubst_n27",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/sensores/:sensorId/eliminar",
+        "url": "/hub/areas/:id/sensores/:sensorId/eliminar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1800,
+        "wires": [
+            [
+                "hubst_n28"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n28",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_eliminar_sensor",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar sensorId = Number(msg.req.params.sensorId);\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    s.sensores = s.sensores.filter(function(sn) { return sn.id !== sensorId; });\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1800,
+        "wires": [
+            [
+                "hubst_n29"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n29",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1800,
+        "wires": []
+    },
+    {
+        "id": "hubst_n30",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/ajustes",
+        "url": "/hub/areas/:id/ajustes",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1870,
+        "wires": [
+            [
+                "hubst_n31"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n31",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_ajustes",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar body = msg.payload || {};\nglobal.get('hubLoadStructure')(areaId).then(function(s) {\n    if (!s) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    s.config.watchdogMinutos = Math.max(1, Number(body.watchdogMinutos) || 60);\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        msg.statusCode = 302; msg.headers = { Location: '/hub/areas/' + areaId + '/estructura' }; node.send(msg);\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1870,
+        "wires": [
+            [
+                "hubst_n32"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n32",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1870,
+        "wires": []
+    },
+    {
+        "id": "hubst_n33",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/estructura/importar",
+        "url": "/hub/areas/:id/estructura/importar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1940,
+        "wires": [
+            [
+                "hubst_n34"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n34",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hubst_fn_importar",
+        "func": "var esc = global.get('hubEsc');\n\nvar areaId = msg.req.params.id;\nvar body = msg.payload || {};\nglobal.get('pgPool').query('SELECT id FROM riego_hub.areas WHERE id = $1', [areaId]).then(function(r) {\n    if (!r.rows[0]) { msg.statusCode = 404; msg.payload = 'Area no encontrada'; return node.send(msg); }\n    var s = {\n        zonas: Array.isArray(body.zonas) ? body.zonas : [],\n        valvulas: Array.isArray(body.valvulas) ? body.valvulas : [],\n        sensores: Array.isArray(body.sensores) ? body.sensores : [],\n        config: Object.assign({ watchdogMinutos: 60 }, body.config || {})\n    };\n    global.get('hubSaveStructure')(areaId, s).then(function() {\n        global.get('pgPool').query('SELECT structure_version FROM riego_hub.areas WHERE id = $1', [areaId]).then(function(r2) {\n            msg.statusCode = 200;\n            msg.payload = { ok: true, structure_version: r2.rows[0].structure_version };\n            node.send(msg);\n        });\n    }).catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: err.message }; node.send(msg); });\n}).catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: err.message }; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1940,
+        "wires": [
+            [
+                "hubst_n35"
+            ]
+        ]
+    },
+    {
+        "id": "hubst_n35",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 1940,
         "wires": []
     }
 ]

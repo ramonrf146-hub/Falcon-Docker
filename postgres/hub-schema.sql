@@ -16,5 +16,12 @@ CREATE TABLE IF NOT EXISTS riego_hub.areas (
     notes             TEXT,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_heartbeat_at TIMESTAMPTZ,
-    last_heartbeat_ip TEXT
+    last_heartbeat_ip TEXT,
+    -- Estructura (Etapa 3): zonas/valvulas/sensores/ajustes de esta area,
+    -- gestionados desde /hub/areas/:id/estructura. Cada Edge la sincroniza
+    -- via heartbeat (structure_version) y la cachea localmente -- ver
+    -- riego_auth.hub_status.structure_version en el Edge.
+    structure_version INTEGER NOT NULL DEFAULT 0,
+    structure         JSONB NOT NULL DEFAULT
+        '{"zonas":[],"valvulas":[],"sensores":[],"config":{"watchdogMinutos":60}}'::jsonb
 );
