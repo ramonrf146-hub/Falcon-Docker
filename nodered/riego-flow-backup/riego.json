@@ -44,8 +44,8 @@
       "zonaId": 1787282845044,
       "nombre": "V-2",
       "canal": 1,
-      "estado": false,
-      "origen": null,
+      "estado": true,
+      "origen": "manual",
       "aperturaDesde": null,
       "duracionMs": null
     },

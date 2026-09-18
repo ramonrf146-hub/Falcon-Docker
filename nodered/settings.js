@@ -121,6 +121,28 @@ module.exports = {
                     return next();
                 }
 
+                // Aprovisionamiento por area: el dashboard remoto (via
+                // Cloudflare) solo se habilita si esta instancia tiene su
+                // RIEGO_AREA_ID/RIEGO_AREA_KEY configurados (ninguno vacio
+                // ni el placeholder de ejemplo). Pensado para cuando haya
+                // varias areas fisicas: cada una necesita su propio par
+                // ID+KEY antes de exponerse a internet. El acceso local de
+                // arriba nunca pasa por esta traba.
+                const areaId = process.env.RIEGO_AREA_ID;
+                const areaKey = process.env.RIEGO_AREA_KEY;
+                const areaOk = !!areaId && !!areaKey && areaKey !== 'CHANGE_ME' && areaKey.length >= 32;
+                if (!areaOk) {
+                    return response.status(403).send(
+                        '<!doctype html><html><head><meta charset="utf-8">' +
+                        '<title>Area no aprovisionada</title></head>' +
+                        '<body style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#22303F;">' +
+                        '<h2>🔒 Area no aprovisionada</h2>' +
+                        '<p>Esta instancia todavia no tiene un ID y clave de area validos configurados.</p>' +
+                        '<p>El dashboard no se expone a internet hasta completar el aprovisionamiento.</p>' +
+                        '</body></html>'
+                    );
+                }
+
                 if (request.session && request.session.user) return next();
 
                 if (request.method === 'GET') {
