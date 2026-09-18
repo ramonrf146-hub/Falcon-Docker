@@ -121,34 +121,65 @@ module.exports = {
                     return next();
                 }
 
-                // Aprovisionamiento por area: el dashboard remoto (via
-                // Cloudflare) solo se habilita si esta instancia tiene su
-                // RIEGO_AREA_ID/RIEGO_AREA_KEY configurados (ninguno vacio
-                // ni el placeholder de ejemplo). Pensado para cuando haya
-                // varias areas fisicas: cada una necesita su propio par
-                // ID+KEY antes de exponerse a internet. El acceso local de
-                // arriba nunca pasa por esta traba.
+                // Aprovisionamiento por area (Etapa 2): el dashboard remoto
+                // (via Cloudflare) solo se habilita si el area esta bien
+                // configurada. Si esta instancia ya tiene un Hub central
+                // asignado (HUB_URL), se confia en el ultimo heartbeat
+                // cacheado en riego_auth.hub_status (lo actualiza un flujo
+                // periodico en auth_tab que le pega a
+                // HUB_URL/api/areas/heartbeat); si todavia no hay Hub para
+                // esta instancia, se cae al chequeo de solo-formato de la
+                // Etapa 1 -- asi el cambio es 100% retrocompatible. El
+                // acceso local de arriba nunca pasa por ninguno de los dos
+                // caminos.
+                const sendAreaBlocked = (titulo, detalle) => response.status(403).send(
+                    '<!doctype html><html><head><meta charset="utf-8">' +
+                    '<title>' + titulo + '</title></head>' +
+                    '<body style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#22303F;">' +
+                    '<h2>🔒 ' + titulo + '</h2>' +
+                    '<p>' + detalle + '</p>' +
+                    '<p>El dashboard no se expone a internet hasta completar el aprovisionamiento.</p>' +
+                    '</body></html>'
+                );
+
+                const proceedToSession = () => {
+                    if (request.session && request.session.user) return next();
+                    if (request.method === 'GET') return response.redirect('/riego-login');
+                    return response.status(401).send('Autenticacion requerida');
+                };
+
                 const areaId = process.env.RIEGO_AREA_ID;
                 const areaKey = process.env.RIEGO_AREA_KEY;
-                const areaOk = !!areaId && !!areaKey && areaKey !== 'CHANGE_ME' && areaKey.length >= 32;
-                if (!areaOk) {
-                    return response.status(403).send(
-                        '<!doctype html><html><head><meta charset="utf-8">' +
-                        '<title>Area no aprovisionada</title></head>' +
-                        '<body style="font-family:sans-serif; text-align:center; padding:60px 20px; color:#22303F;">' +
-                        '<h2>🔒 Area no aprovisionada</h2>' +
-                        '<p>Esta instancia todavia no tiene un ID y clave de area validos configurados.</p>' +
-                        '<p>El dashboard no se expone a internet hasta completar el aprovisionamiento.</p>' +
-                        '</body></html>'
-                    );
+                const areaFormatOk = !!areaId && !!areaKey && areaKey !== 'CHANGE_ME' && areaKey.length >= 32;
+                if (!areaFormatOk) {
+                    return sendAreaBlocked('Area no aprovisionada', 'Esta instancia todavia no tiene un ID y clave de area validos configurados.');
                 }
 
-                if (request.session && request.session.user) return next();
-
-                if (request.method === 'GET') {
-                    return response.redirect('/riego-login');
+                if (!process.env.HUB_URL) {
+                    return proceedToSession();
                 }
-                return response.status(401).send('Autenticacion requerida');
+
+                const graceHours = parseFloat(process.env.HUB_GRACE_PERIOD_HOURS) || 168;
+                pgPool.query('SELECT last_ok_at, revoked FROM riego_auth.hub_status WHERE id = 1')
+                    .then((result) => {
+                        const row = result.rows[0];
+                        if (!row) {
+                            return sendAreaBlocked('Area no validada', 'Todavia no se pudo confirmar el estado de esta area con el Hub central.');
+                        }
+                        if (row.revoked) {
+                            return sendAreaBlocked('Area revocada', 'El Hub central revoco el acceso remoto de esta area.');
+                        }
+                        const lastOkMs = row.last_ok_at ? new Date(row.last_ok_at).getTime() : 0;
+                        const ageHours = (Date.now() - lastOkMs) / (1000 * 60 * 60);
+                        if (!row.last_ok_at || ageHours > graceHours) {
+                            return sendAreaBlocked('Area no validada', 'No se pudo validar esta area con el Hub central a tiempo (ultimo contacto exitoso hace mas de ' + graceHours + ' horas).');
+                        }
+                        return proceedToSession();
+                    })
+                    .catch((err) => {
+                        console.error('[hub_status] error consultando riego_auth.hub_status:', err.message);
+                        return sendAreaBlocked('Area no validada', 'No se pudo verificar el estado de esta area (error interno).');
+                    });
             }
         ]
     },

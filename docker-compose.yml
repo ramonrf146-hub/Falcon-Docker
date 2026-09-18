@@ -164,6 +164,11 @@ services:
       RIEGO_AREA_ID: ${RIEGO_AREA_ID}
       RIEGO_AREA_NAME: ${RIEGO_AREA_NAME}
       RIEGO_AREA_KEY: ${RIEGO_AREA_KEY}
+      # Hub central (Etapa 2): si HUB_URL esta vacio, el area sigue con el
+      # chequeo de solo-formato de la Etapa 1 (retrocompatible).
+      HUB_URL: ${HUB_URL}
+      HUB_HEARTBEAT_INTERVAL_MINUTES: ${HUB_HEARTBEAT_INTERVAL_MINUTES:-10}
+      HUB_GRACE_PERIOD_HOURS: ${HUB_GRACE_PERIOD_HOURS:-168}
       NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER}
       NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH}
       DASHBOARD_USER: ${DASHBOARD_USER}
@@ -181,6 +186,43 @@ services:
     depends_on:
       mosquitto:
         condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - riego-net
+
+  # Hub central de areas (Etapa 2): fuente de verdad de que areas fisicas
+  # existen y si su RIEGO_AREA_KEY sigue siendo valida. Cada Edge (como el
+  # "nodered" de arriba) le manda un heartbeat periodico; el Hub puede
+  # revocar el acceso REMOTO al dashboard de un area sin tocar el Edge.
+  # Instancia de Node-RED separada (mismo Postgres, schema "riego_hub"
+  # propio) para que un problema aca nunca pueda afectar el control de
+  # valvulas de ningun Edge -- si este contenedor se cae, cada Edge sigue
+  # regando y sirviendo su dashboard remoto durante HUB_GRACE_PERIOD_HOURS.
+  hub-nodered:
+    image: riego-docker:latest
+    restart: unless-stopped
+    # El entrypoint.sh horneado en la imagen es especifico del Edge (exige
+    # el proyecto Riego-Docker y renderiza templates que el Hub no usa) --
+    # lo salteamos y arrancamos Node-RED directo.
+    entrypoint: ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
+    command: []
+    ports:
+      - "1881:1880"
+    environment:
+      TZ: ${TZ}
+      NODERED_CREDENTIAL_SECRET: ${NODERED_CREDENTIAL_SECRET}
+      HUB_ADMIN_USER: ${HUB_ADMIN_USER}
+      HUB_EDITOR_PASSWORD_HASH: ${HUB_EDITOR_PASSWORD_HASH}
+      HUB_ADMIN_PASSWORD_HASH: ${HUB_ADMIN_PASSWORD_HASH}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - hub_nodered_data:/data
+      - ./nodered/hub-settings.js:/data/settings.js:ro
+    depends_on:
       postgres:
         condition: service_healthy
     networks:
@@ -228,4 +270,5 @@ volumes:
   mosquitto_data:
   mosquitto_log:
   nodered_data:
+  hub_nodered_data:
   homeassistant_data:

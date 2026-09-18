@@ -3629,5 +3629,109 @@
         "x": 610,
         "y": 940,
         "wires": []
+    },
+    {
+        "id": "hub_hb_inject",
+        "type": "inject",
+        "z": "auth_tab",
+        "name": "Heartbeat al Hub (cada 10 min)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "600",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 8,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 220,
+        "y": 900,
+        "wires": [
+            [
+                "hub_hb_fn_build"
+            ]
+        ]
+    },
+    {
+        "id": "hub_hb_fn_build",
+        "type": "function",
+        "z": "auth_tab",
+        "name": "Armar heartbeat (area_id/key)",
+        "func": "\nvar hubUrl = env.get('HUB_URL');\nif (!hubUrl) { return null; }\nmsg.url = hubUrl.replace(/\\/$/, '') + '/api/areas/heartbeat';\nmsg.headers = { 'content-type': 'application/json' };\nmsg.payload = { area_id: env.get('RIEGO_AREA_ID'), area_key: env.get('RIEGO_AREA_KEY') };\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 900,
+        "wires": [
+            [
+                "hub_hb_http"
+            ]
+        ]
+    },
+    {
+        "id": "hub_hb_http",
+        "type": "http request",
+        "z": "auth_tab",
+        "name": "POST HUB_URL/api/areas/heartbeat",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 700,
+        "y": 900,
+        "wires": [
+            [
+                "hub_hb_fn_handle"
+            ]
+        ]
+    },
+    {
+        "id": "hub_hb_fn_handle",
+        "type": "function",
+        "z": "auth_tab",
+        "name": "Guardar resultado en hub_status",
+        "func": "\nvar pgPool = global.get('pgPool');\nfunction markCheck() {\n    pgPool.query('UPDATE riego_auth.hub_status SET last_check_at = now() WHERE id = 1')\n        .catch(function(e) { node.error('hub_status update failed: ' + e.message); });\n}\nif (msg.error || typeof msg.statusCode === 'undefined' || msg.statusCode >= 500 || msg.statusCode === 0) {\n    // Fallo de red o error interno del Hub: nunca revoca nada por si solo.\n    markCheck();\n    return null;\n}\nvar body = msg.payload || {};\nif (body.ok === true) {\n    pgPool.query('UPDATE riego_auth.hub_status SET last_ok_at = now(), last_check_at = now(), revoked = false WHERE id = 1')\n        .catch(function(e) { node.error('hub_status update failed: ' + e.message); });\n} else if (body.reason === 'revoked') {\n    pgPool.query('UPDATE riego_auth.hub_status SET last_check_at = now(), revoked = true WHERE id = 1')\n        .catch(function(e) { node.error('hub_status update failed: ' + e.message); });\n} else {\n    markCheck();\n}\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 900,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "hub_hb_catch",
+        "type": "catch",
+        "z": "auth_tab",
+        "name": "Catch error de heartbeat",
+        "scope": [
+            "hub_hb_http"
+        ],
+        "uncaught": false,
+        "x": 700,
+        "y": 960,
+        "wires": [
+            [
+                "hub_hb_fn_handle"
+            ]
+        ]
     }
 ]

@@ -1,0 +1,361 @@
+[
+    {
+        "id": "hub_tab",
+        "type": "tab",
+        "label": "Hub Areas",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "hub_n1",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "GET /hub/areas",
+        "url": "/hub/areas",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 160,
+        "wires": [
+            [
+                "hub_n2"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n2",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_list",
+        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.revoke{background:#b42318;color:#fff}.reactivate{background:#1a7f37;color:#fff}.rotate{background:#946200;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}</style></head>' +\n        '<body><h2>🌱 Riego Hub — administración de áreas</h2>' + body + '</body></html>';\n}\n\nglobal.get('pgPool').query('SELECT id, name, status, last_heartbeat_at FROM riego_hub.areas ORDER BY created_at')\n    .then(function(result) {\n        var rows = result.rows.map(function(a) {\n            var estado = a.status === 'revoked' ? '<span class=\"bad\">revocada</span>' : '<span class=\"ok\">activa</span>';\n            var hb = a.last_heartbeat_at ? new Date(a.last_heartbeat_at).toLocaleString('es-AR') : 'nunca';\n            var toggle = a.status === 'revoked'\n                ? '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/reactivate\"><button class=\"reactivate\">Reactivar</button></form>'\n                : '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/revoke\"><button class=\"revoke\">Revocar</button></form>';\n            var rotate = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/rotate-key\" onsubmit=\"return confirm(\\'Esto invalida la key actual del area. Confirmar?\\');\"><button class=\"rotate\">Rotar key</button></form>';\n            return '<tr><td>' + esc(a.id) + '</td><td>' + esc(a.name) + '</td><td>' + estado + '</td><td>' + esc(hb) + '</td><td>' + toggle + ' ' + rotate + '</td></tr>';\n        }).join('');\n        if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay areas creadas.</td></tr>';\n        var body = '<table><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Ultimo heartbeat</th><th>Acciones</th></tr>' + rows + '</table>' +\n            '<fieldset><legend>Crear area nueva</legend>' +\n            '<form method=\"POST\" action=\"/hub/areas\">' +\n            '<label>Nombre<input name=\"name\" required placeholder=\"Ej: Finca Norte\"></label>' +\n            '<label>ID (opcional, se genera del nombre si se deja vacio)<input name=\"id\" placeholder=\"Ej: finca-norte\"></label>' +\n            '<label>Key existente (opcional -- para dar de alta un area que ya tiene una key funcionando, sin rotarla)<input name=\"existing_key\" placeholder=\"Dejar vacio para generar una key nueva\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear area</button></p>' +\n            '</form></fieldset>';\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Riego Hub', body);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Error', '<p>Error consultando areas: ' + esc(err.message) + '</p>');\n        node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 160,
+        "wires": [
+            [
+                "hub_n3"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n3",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "hub_n4",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas",
+        "url": "/hub/areas",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 240,
+        "wires": [
+            [
+                "hub_n5"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n5",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_create",
+        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction renderKeyOncePage(id, name, key, imported) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><title>Area ' + (imported ? 'importada' : 'creada') + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 16px;color:#22303F}' +\n        'code{display:block;background:#f4f4f4;padding:12px;border-radius:6px;word-break:break-all;font-size:14px}</style></head>' +\n        '<body><h2>✅ Área \"' + esc(name) + '\" (' + esc(id) + ') ' + (imported ? 'importada' : 'creada') + '</h2>' +\n        '<p><strong>' + (imported ? 'Key confirmada' : 'Nueva key') + ' (copiala ahora, no se vuelve a mostrar):</strong></p>' +\n        '<code>' + esc(key) + '</code>' +\n        '<p>Poné este valor como <code>RIEGO_AREA_KEY</code> en el <code>.env</code> del Edge de esta área' +\n        (imported ? ' (si ya lo tenía configurado así, no hace falta tocar nada).' : ', junto con <code>RIEGO_AREA_ID=' + esc(id) + '</code> y <code>HUB_URL</code> apuntando a este Hub.') +\n        '</p><p><a href=\"/hub/areas\">Volver a la lista</a></p></body></html>';\n}\n\nvar body = msg.payload || {};\nvar name = (body.name || '').trim();\nif (!name) {\n    msg.statusCode = 400;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = '<p>Falta el nombre del area. <a href=\"/hub/areas\">Volver</a></p>';\n    return msg;\n}\nvar areaId = (body.id || '').trim().toLowerCase();\nif (!areaId) {\n    areaId = name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');\n}\nif (!/^[a-z0-9-]+$/.test(areaId)) {\n    msg.statusCode = 400;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = '<p>ID invalido (solo minusculas, numeros y guiones). <a href=\"/hub/areas\">Volver</a></p>';\n    return msg;\n}\n\nvar existingKey = (body.existing_key || '').trim();\nvar key = existingKey || crypto.randomBytes(32).toString('hex');\nvar keyHash = crypto.createHash('sha256').update(key).digest('hex');\n\nglobal.get('pgPool').query(\n    'INSERT INTO riego_hub.areas (id, name, key_hash) VALUES ($1, $2, $3)',\n    [areaId, name, keyHash]\n).then(function() {\n    msg.statusCode = 200;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = renderKeyOncePage(areaId, name, key, !!existingKey);\n    node.send(msg);\n}).catch(function(err) {\n    msg.statusCode = err.code === '23505' ? 409 : 500;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = '<p>Error creando el area: ' + esc(err.message) + '</p><p><a href=\"/hub/areas\">Volver</a></p>';\n    node.send(msg);\n});\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            }
+        ],
+        "x": 420,
+        "y": 240,
+        "wires": [
+            [
+                "hub_n6"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n6",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "hub_n7",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/revoke",
+        "url": "/hub/areas/:id/revoke",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 320,
+        "wires": [
+            [
+                "hub_n8"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n8",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_revoke",
+        "func": "\nvar areaId = msg.req.params.id;\nglobal.get('pgPool').query(\"UPDATE riego_hub.areas SET status='revoked' WHERE id=$1\", [areaId])\n    .then(function() { msg.statusCode = 302; msg.headers = { Location: '/hub/areas' }; node.send(msg); })\n    .catch(function(err) { msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 320,
+        "wires": [
+            [
+                "hub_n9"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n9",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "hub_n10",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/reactivate",
+        "url": "/hub/areas/:id/reactivate",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 400,
+        "wires": [
+            [
+                "hub_n11"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n11",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_reactivate",
+        "func": "\nvar areaId = msg.req.params.id;\nglobal.get('pgPool').query(\"UPDATE riego_hub.areas SET status='active' WHERE id=$1\", [areaId])\n    .then(function() { msg.statusCode = 302; msg.headers = { Location: '/hub/areas' }; node.send(msg); })\n    .catch(function(err) { msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 400,
+        "wires": [
+            [
+                "hub_n12"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n12",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "hub_n13",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/rotate-key",
+        "url": "/hub/areas/:id/rotate-key",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 480,
+        "wires": [
+            [
+                "hub_n14"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n14",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_rotate",
+        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction renderKeyOncePage(id, name, key, imported) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><title>Area ' + (imported ? 'importada' : 'creada') + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 16px;color:#22303F}' +\n        'code{display:block;background:#f4f4f4;padding:12px;border-radius:6px;word-break:break-all;font-size:14px}</style></head>' +\n        '<body><h2>✅ Área \"' + esc(name) + '\" (' + esc(id) + ') ' + (imported ? 'importada' : 'creada') + '</h2>' +\n        '<p><strong>' + (imported ? 'Key confirmada' : 'Nueva key') + ' (copiala ahora, no se vuelve a mostrar):</strong></p>' +\n        '<code>' + esc(key) + '</code>' +\n        '<p>Poné este valor como <code>RIEGO_AREA_KEY</code> en el <code>.env</code> del Edge de esta área' +\n        (imported ? ' (si ya lo tenía configurado así, no hace falta tocar nada).' : ', junto con <code>RIEGO_AREA_ID=' + esc(id) + '</code> y <code>HUB_URL</code> apuntando a este Hub.') +\n        '</p><p><a href=\"/hub/areas\">Volver a la lista</a></p></body></html>';\n}\n\nvar areaId = msg.req.params.id;\nvar key = crypto.randomBytes(32).toString('hex');\nvar keyHash = crypto.createHash('sha256').update(key).digest('hex');\nglobal.get('pgPool').query('UPDATE riego_hub.areas SET key_hash=$1 WHERE id=$2 RETURNING name', [keyHash, areaId])\n    .then(function(result) {\n        if (!result.rows[0]) {\n            msg.statusCode = 404;\n            msg.headers = { 'Content-Type': 'text/plain' };\n            msg.payload = 'Area no encontrada';\n            return node.send(msg);\n        }\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = renderKeyOncePage(areaId, result.rows[0].name, key, false);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/plain' };\n        msg.payload = 'Error: ' + err.message;\n        node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            }
+        ],
+        "x": 420,
+        "y": 480,
+        "wires": [
+            [
+                "hub_n15"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n15",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "hub_n16",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/areas/heartbeat",
+        "url": "/api/areas/heartbeat",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 560,
+        "wires": [
+            [
+                "hub_n17"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n17",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_heartbeat",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nif (!areaId || !areaKey) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, reason: 'missing_fields' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT name, key_hash, status FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(result) {\n        var area = result.rows[0];\n        if (!area || area.key_hash !== keyHash) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, reason: 'invalid_key' };\n            return node.send(msg);\n        }\n        if (area.status === 'revoked') {\n            msg.statusCode = 403;\n            msg.payload = { ok: false, reason: 'revoked' };\n            return node.send(msg);\n        }\n        var ip = (msg.req.headers['x-forwarded-for'] || (msg.req.connection && msg.req.connection.remoteAddress) || '').toString();\n        global.get('pgPool').query(\n            'UPDATE riego_hub.areas SET last_heartbeat_at = now(), last_heartbeat_ip = $2 WHERE id = $1',\n            [areaId, ip]\n        ).finally(function() {\n            msg.statusCode = 200;\n            msg.payload = { ok: true, area_name: area.name, server_time: new Date().toISOString() };\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, reason: 'internal_error' };\n        node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            }
+        ],
+        "x": 420,
+        "y": 560,
+        "wires": [
+            [
+                "hub_n18"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n18",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "hub_n19",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "GET /hub",
+        "url": "/hub",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 640,
+        "wires": [
+            [
+                "hub_n20"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n20",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_root_redirect",
+        "func": "msg.statusCode = 302;\nmsg.headers = { Location: '/hub/areas' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 640,
+        "wires": [
+            [
+                "hub_n21"
+            ]
+        ]
+    },
+    {
+        "id": "hub_n21",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 640,
+        "wires": []
+    }
+]
