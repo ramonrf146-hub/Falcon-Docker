@@ -3,7 +3,7 @@
 Copia de seguridad de `flows.json` y `package.json` del proyecto Node-RED
 "Riego-Docker", que vive normalmente **adentro del volumen Docker
 `nodered_data`** (no en esta carpeta) y se edita en vivo entrando al
-contenedor `guardian-nodered-1`.
+contenedor `falcon-nodered-1`.
 
 Esta carpeta existe para que el flujo completo (control de riego, sensores,
 rutinas, idioma, todo) tenga una copia versionada con git fuera de Docker,
@@ -19,9 +19,9 @@ Después de hacer cambios importantes (vía editor de Node-RED, la app, o
 scripts), corré esto para traer la copia más reciente:
 
 ```bash
-docker cp guardian-nodered-1:/data/projects/Riego-Docker/flows.json ./flows.json
-docker cp guardian-nodered-1:/data/projects/Riego-Docker/package.json ./package.json
-docker cp guardian-nodered-1:/data/riego.json ./riego.json
+docker cp falcon-nodered-1:/data/projects/Riego-Docker/flows.json ./flows.json
+docker cp falcon-nodered-1:/data/projects/Riego-Docker/package.json ./package.json
+docker cp falcon-nodered-1:/data/riego.json ./riego.json
 ```
 
 Después commiteá los cambios como cualquier archivo del repo.
@@ -31,9 +31,9 @@ Después commiteá los cambios como cualquier archivo del repo.
 1. Levantá el contenedor de Node-RED nuevo (`docker compose up -d nodered`).
 2. Copiá estos archivos de vuelta:
    ```bash
-   docker cp ./flows.json guardian-nodered-1:/data/projects/Riego-Docker/flows.json
-   docker cp ./package.json guardian-nodered-1:/data/projects/Riego-Docker/package.json
-   docker cp ./riego.json guardian-nodered-1:/data/riego.json
+   docker cp ./flows.json falcon-nodered-1:/data/projects/Riego-Docker/flows.json
+   docker cp ./package.json falcon-nodered-1:/data/projects/Riego-Docker/package.json
+   docker cp ./riego.json falcon-nodered-1:/data/riego.json
    ```
 3. Redeployá desde el editor de Node-RED, o forzá un full-deploy vía la Admin API.
 

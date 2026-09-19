@@ -1,4 +1,4 @@
-name: riego
+name: falcon
 
 services:
   postgres:
@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - riego-net
+      - falcon-net
 
   redis:
     image: redis:7-alpine
@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - riego-net
+      - falcon-net
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -47,7 +47,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - riego-net
+      - falcon-net
 
   chirpstack:
     image: chirpstack/chirpstack:4
@@ -73,7 +73,7 @@ services:
       mosquitto:
         condition: service_started
     networks:
-      - riego-net
+      - falcon-net
 
   chirpstack-gateway-bridge:
     image: chirpstack/chirpstack-gateway-bridge:4
@@ -88,7 +88,7 @@ services:
       mosquitto:
         condition: service_started
     networks:
-      - riego-net
+      - falcon-net
 
   chirpstack-rest-api:
     image: chirpstack/chirpstack-rest-api:4
@@ -99,7 +99,7 @@ services:
     depends_on:
       - chirpstack
     networks:
-      - riego-net
+      - falcon-net
 
   chirpstack-init:
     image: alpine:3
@@ -124,7 +124,7 @@ services:
       - ./dragino_decoders:/codecs:ro
     command: ["/bin/sh", "/scripts/bootstrap-chirpstack.sh"]
     networks:
-      - riego-net
+      - falcon-net
 
   nodered:
     build:
@@ -137,7 +137,7 @@ services:
         # Credentials never reach the runtime container.
         GITLAB_USER: ${GITLAB_USER}
         GITLAB_TOKEN: ${GITLAB_TOKEN}
-    image: riego-docker:latest
+    image: falcon-docker:latest
     restart: unless-stopped
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
@@ -189,7 +189,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - riego-net
+      - falcon-net
 
   # Hub central de areas (Etapa 2): fuente de verdad de que areas fisicas
   # existen y si su RIEGO_AREA_KEY sigue siendo valida. Cada Edge (como el
@@ -200,7 +200,7 @@ services:
   # valvulas de ningun Edge -- si este contenedor se cae, cada Edge sigue
   # regando y sirviendo su dashboard remoto durante HUB_GRACE_PERIOD_HOURS.
   hub-nodered:
-    image: riego-docker:latest
+    image: falcon-docker:latest
     restart: unless-stopped
     # El entrypoint.sh horneado en la imagen es especifico del Edge (exige
     # el proyecto Riego-Docker y renderiza templates que el Hub no usa) --
@@ -226,7 +226,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - riego-net
+      - falcon-net
 
   # Home Assistant: bridge for Tuya/Zigbee sensors, polled by Node-RED's
   # generic sensor registry for irrigation routine conditions.
@@ -240,7 +240,7 @@ services:
     environment:
       TZ: ${TZ}
     networks:
-      - riego-net
+      - falcon-net
 
   # Cloudflare Tunnel: exposes the dashboard at a public HTTPS URL without
   # opening any port on the router/firewall. Needs CLOUDFLARE_TUNNEL_TOKEN
@@ -256,12 +256,12 @@ services:
     depends_on:
       - nodered
     networks:
-      - riego-net
+      - falcon-net
     profiles:
       - cloudflare
 
 networks:
-  riego-net:
+  falcon-net:
     driver: bridge
 
 volumes:

@@ -26,7 +26,7 @@ RUN set -eu; \
           echo "@heromatic:registry=${HEROMATIC_NPM_REGISTRY}"; \
           echo "_auth=${AUTH}"; \
           echo "always-auth=true"; \
-          echo "email=ci@riego.local"; \
+          echo "email=ci@falcon.local"; \
         } > /root/.npmrc; \
     fi
 RUN npm install --prefix /deps --omit=dev \

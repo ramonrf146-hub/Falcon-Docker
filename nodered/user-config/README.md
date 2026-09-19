@@ -19,7 +19,7 @@ So you can mix: some fields hardcoded, others read from `.env`.
 ## Apply changes
 
 ```powershell
-cd $HOME\Projects\guardian-docker
+cd C:\Projects\Falcon-Docker
 docker compose up -d nodered
 ```
 

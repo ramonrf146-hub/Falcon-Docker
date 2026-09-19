@@ -7,7 +7,7 @@
 #
 # Resources created (all idempotent):
 #   - Tenant (CHIRPSTACK_TENANT_NAME, default: ChirpStack)
-#   - Application (CHIRPSTACK_APPLICATION_NAME, default: Guardian-app)
+#   - Application (CHIRPSTACK_APPLICATION_NAME, default: Falcon-app)
 #   - Default device profile (DEVICE_PROFILE_NAME) — used as fallback for
 #     devices that don't declare one in their CSV row
 #   - Device profiles from /scripts/device-profiles.csv (with codecs from /codecs)
@@ -21,7 +21,7 @@ API_HTTP="${CHIRPSTACK_REST_API:-http://chirpstack-rest-api:8090}"
 ADMIN_EMAIL="${CHIRPSTACK_ADMIN_USER:-admin}"
 ADMIN_PASS="${CHIRPSTACK_ADMIN_PASS:-admin}"
 TENANT_NAME="${CHIRPSTACK_TENANT_NAME:-ChirpStack}"
-APPLICATION_NAME="${CHIRPSTACK_APPLICATION_NAME:-Guardian-app}"
+APPLICATION_NAME="${CHIRPSTACK_APPLICATION_NAME:-Falcon-app}"
 DEFAULT_DP_NAME="${DEVICE_PROFILE_NAME:-US915-Class-A-OTAA}"
 GW_EUI="${LPS8_GATEWAY_EUI:?LPS8_GATEWAY_EUI is required}"
 GW_NAME="${LPS8_GATEWAY_NAME:-LPS8-${GW_EUI}}"
@@ -135,7 +135,7 @@ if [ -z "$GW_RESP" ] || ! printf '%s' "$GW_RESP" | jq -e '.gateway' >/dev/null 2
   log "Creating gateway $GW_EUI ($GW_NAME)"
   TMP=/tmp/payload.$$
   jq -n --arg id "$GW_EUI" --arg n "$GW_NAME" --arg t "$TENANT_ID" \
-    '{gateway:{gatewayId:$id,name:$n,description:"Auto-registered by guardian-docker bootstrap",tenantId:$t,statsInterval:30,metadata:{}}}' \
+    '{gateway:{gatewayId:$id,name:$n,description:"Auto-registered by falcon-docker bootstrap",tenantId:$t,statsInterval:30,metadata:{}}}' \
     > "$TMP"
   api_post "/api/gateways" "$TMP" >/dev/null || fail "could not create gateway"
   rm -f "$TMP"
@@ -183,7 +183,7 @@ upsert_device_profile() {
     '{deviceProfile:{
         tenantId:$t,
         name:$n,
-        description:"Auto-managed by guardian-docker bootstrap",
+        description:"Auto-managed by falcon-docker bootstrap",
         region:"US915",
         macVersion:$mac,
         regParamsRevision:$reg,
@@ -277,7 +277,7 @@ if [ -z "$APP_ID" ]; then
   log "Creating application '$APPLICATION_NAME'"
   TMP=/tmp/payload.$$
   jq -n --arg t "$TENANT_ID" --arg n "$APPLICATION_NAME" \
-    '{application:{tenantId:$t,name:$n,description:"Auto-created by guardian-docker bootstrap"}}' \
+    '{application:{tenantId:$t,name:$n,description:"Auto-created by falcon-docker bootstrap"}}' \
     > "$TMP"
   APP_ID=$(api_post "/api/applications" "$TMP" | jq -r '.id')
   rm -f "$TMP"

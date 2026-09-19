@@ -1,6 +1,6 @@
-# Guardian Stack Installer
+# Falcon Stack Installer
 
-Interactive PowerShell wizard that installs the Guardian IoT stack on a fresh Windows 11 PC, from zero to working ChirpStack + Node-RED + Docker, with the LPS8 LoRa gateway and Waveshare Modbus gateway tested end-to-end.
+Interactive PowerShell wizard that installs the Falcon IoT stack on a fresh Windows 11 PC, from zero to working ChirpStack + Node-RED + Docker, with the LPS8 LoRa gateway and Waveshare Modbus gateway tested end-to-end.
 
 ## What it does (15 steps)
 
@@ -12,7 +12,7 @@ Interactive PowerShell wizard that installs the Guardian IoT stack on a fresh Wi
 | 4 | Install Git for Windows | via winget |
 | 5 | Configure network adapter | Primary `192.168.1.10/24` + alias `172.31.255.253/30` |
 | 6 | Add firewall rule | UDP/1700 inbound |
-| 7 | Clone `guardian-docker` from GitHub | private repo, GCM-stored PAT |
+| 7 | Clone `Falcon-Docker` from GitHub | private repo, GCM-stored PAT |
 | 8 | Download Docker image | from GitHub Releases (~226 MB) |
 | 9 | Load image | `docker load` |
 | 10 | Configure `.env` | per-site values prompted one by one |
@@ -33,7 +33,7 @@ Open **PowerShell** as a regular user. Paste these commands (replace `YOUR_PAT` 
 ```powershell
 $pat = 'YOUR_PAT'   # e.g. ghp_xxxxxxxxxxxxx
 Invoke-WebRequest `
-  -Uri 'https://raw.githubusercontent.com/guardiannodered/guardian-docker/main/installer/setup.ps1' `
+  -Uri 'https://raw.githubusercontent.com/ramonrf146-hub/Falcon-Docker/main/installer/setup.ps1' `
   -Headers @{ Authorization = "Bearer $pat" } `
   -OutFile $HOME\Downloads\setup.ps1
 cd $HOME\Downloads
@@ -47,7 +47,7 @@ The wizard takes over from here. (`Invoke-WebRequest` preserves the file bytes e
 
 If you'd rather download from the GitHub web UI:
 
-1. Open https://github.com/guardiannodered/guardian-docker/blob/main/installer/setup.ps1
+1. Open https://github.com/ramonrf146-hub/Falcon-Docker/blob/main/installer/setup.ps1
 2. Click the **Raw** button.
 3. Right click on the page → **Save As** → save to your Downloads folder as `setup.ps1`.
 4. Run as above (`cd $HOME\Downloads`, `Set-ExecutionPolicy ...`, `.\setup.ps1`).
@@ -68,7 +68,7 @@ The script is ASCII-only and starts with a UTF-8 BOM, so any browser encoding wo
 
 When step 2 enables WSL features it triggers a reboot. The installer:
 
-1. Saves its state to `%LOCALAPPDATA%\guardian-installer\state.json`.
+1. Saves its state to `%LOCALAPPDATA%\falcon-installer\state.json`.
 2. Creates a Startup shortcut that re-runs `setup.ps1 -Resume`.
 3. Reboots.
 4. After login, Windows auto-launches the shortcut.
@@ -91,7 +91,7 @@ When you pass `-AIAssist`:
 You can revoke the API key at any time:
 
 ```powershell
-cmdkey /delete:GuardianInstaller_AnthropicKey
+cmdkey /delete:FalconInstaller_AnthropicKey
 ```
 
 ## What you need to have ready
@@ -104,10 +104,10 @@ Before you run the wizard:
 - The Dragino LPS8v2 + antenna + power supply.
 - The Waveshare 4-CH RS485 to POE ETH (B) gateway + power supply.
 - The LoRa sensors with their stickers visible (DevEUI + AppKey).
-- Your **GitHub PAT** for `guardiannodered` (the wizard pastes it once and Git Credential Manager keeps it).
+- Your **GitHub PAT** for `ramonrf146-hub` (the wizard pastes it once and Git Credential Manager keeps it).
 - (Optional, for `-AIAssist`) Anthropic API key.
 
-The image (`guardian-nodered-*.tar.gz`) is downloaded automatically from GitHub Releases — no USB needed.
+The image (`falcon-docker-*.tar.gz`) is downloaded automatically from GitHub Releases — no USB needed.
 
 ## Per-site values the wizard asks for
 
@@ -150,11 +150,11 @@ Manually run the script:
 
 | Path | Purpose |
 |------|---------|
-| `%LOCALAPPDATA%\guardian-installer\state.json` | Step progress (resume) |
-| `%LOCALAPPDATA%\guardian-installer\setup.log` | Detailed log |
+| `%LOCALAPPDATA%\falcon-installer\state.json` | Step progress (resume) |
+| `%LOCALAPPDATA%\falcon-installer\setup.log` | Detailed log |
 | Startup folder shortcut | Auto-resume after reboot (removed at the end) |
-| `%USERPROFILE%\Projects\guardian-docker\` | The cloned repo |
-| `%USERPROFILE%\Projects\guardian-docker\dist\` | Downloaded Docker image tarball |
+| `C:\Projects\Falcon-Docker\` | The cloned repo |
+| `C:\Projects\Falcon-Docker\dist\` | Downloaded Docker image tarball |
 
 ## License / scope
 

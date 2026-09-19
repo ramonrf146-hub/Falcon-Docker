@@ -1,4 +1,4 @@
-# Guardian devices CSV
+# Falcon devices CSV
 #
 # Format (CSV with header):
 #   DevEUI,Name,AppKey,DeviceProfile

@@ -1,16 +1,16 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Guardian Stack Installer - interactive wizard for fresh Windows PCs.
+    Falcon Stack Installer - interactive wizard for fresh Windows PCs.
 
 .DESCRIPTION
-    Walks through every step of installing the Guardian IoT stack on a fresh
+    Walks through every step of installing the Falcon IoT stack on a fresh
     Windows machine: WSL/Docker/Git, network configuration, repo clone,
     Docker image load, env configuration, stack startup, LPS8 LoRa gateway
     restore, and Modbus gateway verification.
 
     Each step is verified before moving to the next. State is persisted to
-    %LOCALAPPDATA%\guardian-installer\state.json so the wizard can resume
+    %LOCALAPPDATA%\falcon-installer\state.json so the wizard can resume
     after reboots or interruptions.
 
 .PARAMETER Resume
@@ -63,19 +63,22 @@ Set-StrictMode -Version Latest
 #=================================================================
 
 $Script:INSTALLER_VERSION = '1.0.0'
-$Script:REPO_URL = 'https://guardiannodered@github.com/guardiannodered/guardian-docker.git'
-$Script:REPO_DIR = Join-Path $env:USERPROFILE 'Projects\guardian-docker'
-$Script:STATE_DIR = Join-Path $env:LOCALAPPDATA 'guardian-installer'
+$Script:REPO_URL = 'https://github.com/ramonrf146-hub/Falcon-Docker.git'
+$Script:REPO_DIR = 'C:\Projects\Falcon-Docker'
+$Script:STATE_DIR = Join-Path $env:LOCALAPPDATA 'falcon-installer'
 $Script:STATE_FILE = Join-Path $Script:STATE_DIR 'state.json'
 $Script:LOG_FILE = Join-Path $Script:STATE_DIR 'setup.log'
-$Script:STARTUP_SHORTCUT = Join-Path ([Environment]::GetFolderPath('Startup')) 'GuardianInstallerResume.lnk'
+$Script:STARTUP_SHORTCUT = Join-Path ([Environment]::GetFolderPath('Startup')) 'FalconInstallerResume.lnk'
 
 # GitHub Release asset (the pre-built docker image).
-$Script:IMAGE_RELEASE_TAG = 'v0.1.1'
-$Script:IMAGE_ASSET_NAME = 'guardian-nodered-20260426-2046.tar.gz'
-$Script:IMAGE_DOWNLOAD_URL = "https://github.com/guardiannodered/guardian-docker/releases/download/$Script:IMAGE_RELEASE_TAG/$Script:IMAGE_ASSET_NAME"
+# TODO: no existe todavia un release publicado de Falcon-Docker -- estos son
+# placeholders. Actualizar ambos valores cuando se construya y publique la
+# imagen falcon-docker real como GitHub Release.
+$Script:IMAGE_RELEASE_TAG = 'v0.1.0-pending'
+$Script:IMAGE_ASSET_NAME = 'falcon-docker-PENDIENTE.tar.gz'
+$Script:IMAGE_DOWNLOAD_URL = "https://github.com/ramonrf146-hub/Falcon-Docker/releases/download/$Script:IMAGE_RELEASE_TAG/$Script:IMAGE_ASSET_NAME"
 
-# Network constants for the Guardian deployment.
+# Network constants for the Falcon deployment.
 $Script:PRIMARY_IP = '192.168.1.10'
 $Script:PRIMARY_PREFIX = 24
 $Script:LPS8_LINK_IP = '172.31.255.253'
@@ -94,7 +97,7 @@ $Script:STEPS = @(
     @{ Id = 4;  Name = 'git_install';    Title = 'Install Git for Windows'             ; Reboot = $false }
     @{ Id = 5;  Name = 'network_config'; Title = 'Configure network adapter (IPs)'     ; Reboot = $false }
     @{ Id = 6;  Name = 'firewall_rule';  Title = 'Add firewall rule UDP/1700'          ; Reboot = $false }
-    @{ Id = 7;  Name = 'clone_repo';     Title = 'Clone guardian-docker from GitHub'   ; Reboot = $false }
+    @{ Id = 7;  Name = 'clone_repo';     Title = 'Clone Falcon-Docker from GitHub'     ; Reboot = $false }
     @{ Id = 8;  Name = 'download_image'; Title = 'Download Docker image from Releases' ; Reboot = $false }
     @{ Id = 9;  Name = 'load_image';     Title = 'Load Docker image into Docker'       ; Reboot = $false }
     @{ Id = 10; Name = 'env_config';     Title = 'Configure .env (per-site values)'    ; Reboot = $false }
@@ -116,7 +119,7 @@ function Write-Banner {
     Write-Host ""
     Write-Host "  +=======================================================+" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
-    Write-Host "  |         Guardian Stack Installer  v$Script:INSTALLER_VERSION             |" -ForegroundColor Cyan
+    Write-Host "  |         Falcon Stack Installer  v$Script:INSTALLER_VERSION               |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  |         Heromatic / Environmental Monitoring          |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
@@ -301,7 +304,7 @@ function Set-AutoResume {
     $sc.TargetPath = 'powershell.exe'
     $sc.Arguments = "-NoExit -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Resume 0"
     $sc.WorkingDirectory = Split-Path -Parent $PSCommandPath
-    $sc.Description = 'Guardian Installer auto-resume after reboot'
+    $sc.Description = 'Falcon Installer auto-resume after reboot'
     $sc.Save()
     Write-Info "Auto-resume shortcut created at $Script:STARTUP_SHORTCUT"
 }
@@ -338,7 +341,7 @@ function Request-Reboot {
 function Get-AnthropicKey {
     # Try Credential Manager first.
     try {
-        $cred = Get-StoredCredential -Target 'GuardianInstaller_AnthropicKey' -ErrorAction SilentlyContinue
+        $cred = Get-StoredCredential -Target 'FalconInstaller_AnthropicKey' -ErrorAction SilentlyContinue
         if ($cred) { return $cred.GetNetworkCredential().Password }
     } catch {}
     # Fallback: ask user.
@@ -357,8 +360,8 @@ function Get-AnthropicKey {
 function Set-StoredAnthropicKey {
     param([string]$Key)
     # Use cmdkey (built-in Windows). Stores generic credential.
-    $u = 'guardian'
-    & cmdkey.exe /generic:GuardianInstaller_AnthropicKey /user:$u /pass:$Key | Out-Null
+    $u = 'falcon'
+    & cmdkey.exe /generic:FalconInstaller_AnthropicKey /user:$u /pass:$Key | Out-Null
     Write-Ok "API key saved to Windows Credential Manager."
 }
 
@@ -373,7 +376,7 @@ public static extern bool CredRead(string target, int type, int reservedFlag, ou
 [DllImport("Advapi32.dll", SetLastError=true)]
 public static extern void CredFree(IntPtr buffer);
 "@
-        $cm = Add-Type -MemberDefinition $sig -Namespace 'GuardianCM' -Name 'Cm' -PassThru
+        $cm = Add-Type -MemberDefinition $sig -Namespace 'FalconCM' -Name 'Cm' -PassThru
         $ptr = [IntPtr]::Zero
         if ($cm::CredRead($Target, 1, 0, [ref]$ptr)) {
             # Parse the unmanaged CREDENTIAL struct just enough to get CredentialBlob.
@@ -398,7 +401,7 @@ function Invoke-AIAssist {
 
     Write-Info "Querying Claude (this may take a few seconds)..."
     $prompt = @"
-You are helping diagnose an installer failure for the Guardian IoT stack
+You are helping diagnose an installer failure for the Falcon IoT stack
 (Docker, Node-RED, ChirpStack on Windows). Step that failed: $StepName
 
 Error/context:
@@ -718,7 +721,7 @@ function Step-NetworkConfig {
 
 function Step-FirewallRule {
     param($State)
-    $name = 'Docker UDP 1700 (Guardian)'
+    $name = 'Docker UDP 1700 (Falcon)'
     $existing = Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue
     if ($existing) {
         Write-Ok "Firewall rule already exists"
@@ -751,7 +754,7 @@ function Step-CloneRepo {
     Write-Info "If prompted, paste your GitHub Personal Access Token (PAT) as the password."
     Push-Location $parent
     try {
-        & git clone $Script:REPO_URL guardian-docker 2>&1 | ForEach-Object { Write-Host "        $_" -ForegroundColor DarkGray }
+        & git clone $Script:REPO_URL Falcon-Docker 2>&1 | ForEach-Object { Write-Host "        $_" -ForegroundColor DarkGray }
         if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)" }
         Write-Ok "Repo cloned successfully"
         return $true
@@ -768,7 +771,7 @@ function Get-GitHubPat {
     # Falls back to prompting if not found.
     $pat = $null
     try {
-        $credInput = "protocol=https`nhost=github.com`nusername=guardiannodered`n`n"
+        $credInput = "protocol=https`nhost=github.com`nusername=ramonrf146-hub`n`n"
         $out = $credInput | & git credential fill 2>$null
         foreach ($line in $out) {
             if ($line -match '^password=(.+)$') { $pat = $Matches[1]; break }
@@ -801,11 +804,11 @@ function Step-DownloadImage {
     }
 
     # 1. Look up the release and find the asset id.
-    $apiBase = "https://api.github.com/repos/guardiannodered/guardian-docker/releases/tags/$Script:IMAGE_RELEASE_TAG"
+    $apiBase = "https://api.github.com/repos/ramonrf146-hub/Falcon-Docker/releases/tags/$Script:IMAGE_RELEASE_TAG"
     Write-Info "Resolving release asset $Script:IMAGE_ASSET_NAME ($Script:IMAGE_RELEASE_TAG)..."
     try {
         $rel = Invoke-RestMethod -Uri $apiBase `
-            -Headers @{ 'Authorization' = "Bearer $pat"; 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'GuardianInstaller' } `
+            -Headers @{ 'Authorization' = "Bearer $pat"; 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'FalconInstaller' } `
             -ErrorAction Stop
     } catch {
         Write-Fail "API call failed: $_"
@@ -817,7 +820,7 @@ function Step-DownloadImage {
         Write-Info "Available assets: $($rel.assets.name -join ', ')"
         return $false
     }
-    $assetUrl = "https://api.github.com/repos/guardiannodered/guardian-docker/releases/assets/$($asset.id)"
+    $assetUrl = "https://api.github.com/repos/ramonrf146-hub/Falcon-Docker/releases/assets/$($asset.id)"
     $sizeMB = [math]::Round($asset.size / 1MB, 0)
     Write-Info "Asset id $($asset.id), size $sizeMB MB"
 
@@ -827,7 +830,7 @@ function Step-DownloadImage {
         $req = [System.Net.HttpWebRequest]::Create($assetUrl)
         $req.Headers.Add('Authorization', "Bearer $pat")
         $req.Accept = 'application/octet-stream'
-        $req.UserAgent = 'GuardianInstaller'
+        $req.UserAgent = 'FalconInstaller'
         $req.AllowAutoRedirect = $true
         $resp = $req.GetResponse()
         $total = $resp.ContentLength
@@ -864,9 +867,9 @@ function Step-LoadImage {
     $tarball = Join-Path $distDir $Script:IMAGE_ASSET_NAME
 
     # Check if image is already loaded.
-    $img = & docker image ls --format '{{.Repository}}:{{.Tag}}' 2>$null | Where-Object { $_ -eq 'guardian/nodered:latest' }
+    $img = & docker image ls --format '{{.Repository}}:{{.Tag}}' 2>$null | Where-Object { $_ -eq 'falcon-docker:latest' }
     if ($img) {
-        Write-Ok "Image guardian/nodered:latest already loaded"
+        Write-Ok "Image falcon-docker:latest already loaded"
         return $true
     }
 
@@ -889,9 +892,9 @@ function Step-LoadImage {
         return $false
     }
 
-    $img = & docker image ls --format '{{.Repository}}:{{.Tag}}' 2>$null | Where-Object { $_ -eq 'guardian/nodered:latest' }
+    $img = & docker image ls --format '{{.Repository}}:{{.Tag}}' 2>$null | Where-Object { $_ -eq 'falcon-docker:latest' }
     if ($img) {
-        Write-Ok "Image loaded: guardian/nodered:latest"
+        Write-Ok "Image loaded: falcon-docker:latest"
         return $true
     }
     Write-Fail "Image still not present after load."
@@ -1330,7 +1333,7 @@ function Start-Installer {
         }
         $state = Initialize-State
         if (-not $Resume) {
-            Write-Host "  Welcome. This installer will set up the Guardian Stack on this PC." -ForegroundColor Cyan
+            Write-Host "  Welcome. This installer will set up the Falcon Stack on this PC." -ForegroundColor Cyan
             Write-Host "  Total steps: $($Script:STEPS.Count). Estimated time: 30-45 minutes." -ForegroundColor Cyan
             Write-Host ""
             if (-not (Confirm-User 'Ready to begin?' 'Y')) {

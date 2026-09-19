@@ -1,11 +1,12 @@
-# Riego Docker Stack
+# Falcon Docker Stack
 
-> Fork independiente de "Guardian Docker Stack", separado para el proyecto
-> de riego (control de válvulas + rutinas + sensores). Sin conexión de git
-> con el repo original — así los cambios acá nunca afectan a nadie más.
+> Fork independiente de "Guardian Docker Stack" (antes conocido también
+> como "Riego Docker Stack"), separado para el proyecto Falcon (control de
+> válvulas + rutinas + sensores). Sin conexión de git con el repo
+> original — así los cambios acá nunca afectan a nadie más.
 > Ver `nodered/riego-flow-backup/` para el respaldo del flujo de Node-RED.
 
-Docker Compose stack for the **Environmental Monitoring / Node-RED Guardian** project. Bundles Node-RED (with the Guardian project auto-cloned from GitLab), ChirpStack v4 with LoRaWAN US915 support, MQTT broker, PostgreSQL, Redis, and a gateway bridge for the Dragino LPS8v2.
+Docker Compose stack for the **Environmental Monitoring / Node-RED Falcon** project. Bundles Node-RED (with the Falcon project auto-cloned from GitLab), ChirpStack v4 with LoRaWAN US915 support, MQTT broker, PostgreSQL, Redis, and a gateway bridge for the Dragino LPS8v2.
 
 ## Architecture
 
@@ -24,7 +25,7 @@ See `docs/superpowers/specs/2026-04-24-guardian-docker-stack-design.md`.
 
 ```bash
 git clone <this-repo>
-cd guardian-docker
+cd Falcon-Docker
 cp .env.example .env
 # Edit .env and fill every variable marked as blank.
 docker compose build
@@ -94,7 +95,7 @@ Then:
 ## Layout
 
 ```
-guardian-docker/
+Falcon-Docker/
 ├── docker-compose.yml
 ├── .env.example
 ├── nodered/               # custom Node-RED image + settings + entrypoint + templates
