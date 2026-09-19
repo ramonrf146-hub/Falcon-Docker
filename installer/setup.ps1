@@ -71,11 +71,8 @@ $Script:LOG_FILE = Join-Path $Script:STATE_DIR 'setup.log'
 $Script:STARTUP_SHORTCUT = Join-Path ([Environment]::GetFolderPath('Startup')) 'FalconInstallerResume.lnk'
 
 # GitHub Release asset (the pre-built docker image).
-# TODO: no existe todavia un release publicado de Falcon-Docker -- estos son
-# placeholders. Actualizar ambos valores cuando se construya y publique la
-# imagen falcon-docker real como GitHub Release.
-$Script:IMAGE_RELEASE_TAG = 'v0.1.0-pending'
-$Script:IMAGE_ASSET_NAME = 'falcon-docker-PENDIENTE.tar.gz'
+$Script:IMAGE_RELEASE_TAG = 'v0.1.0'
+$Script:IMAGE_ASSET_NAME = 'falcon-docker-20260919-1514.tar.gz'
 $Script:IMAGE_DOWNLOAD_URL = "https://github.com/ramonrf146-hub/Falcon-Docker/releases/download/$Script:IMAGE_RELEASE_TAG/$Script:IMAGE_ASSET_NAME"
 
 # Network constants for the Falcon deployment.
