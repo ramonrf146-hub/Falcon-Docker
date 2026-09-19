@@ -72,7 +72,7 @@ $Script:STARTUP_SHORTCUT = Join-Path ([Environment]::GetFolderPath('Startup')) '
 
 # GitHub Release asset (the pre-built docker image).
 $Script:IMAGE_RELEASE_TAG = 'v0.1.0'
-$Script:IMAGE_ASSET_NAME = 'falcon-docker-20260919-1514.tar.gz'
+$Script:IMAGE_ASSET_NAME = 'falcon-docker-20260919-1658.tar.gz'
 $Script:IMAGE_DOWNLOAD_URL = "https://github.com/ramonrf146-hub/Falcon-Docker/releases/download/$Script:IMAGE_RELEASE_TAG/$Script:IMAGE_ASSET_NAME"
 
 # Network constants for the Falcon deployment.
@@ -118,7 +118,7 @@ function Write-Banner {
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  |         Falcon Stack Installer  v$Script:INSTALLER_VERSION               |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
-    Write-Host "  |         Heromatic / Environmental Monitoring          |" -ForegroundColor Cyan
+    Write-Host "  |              Riego / Irrigation Control               |" -ForegroundColor Cyan
     Write-Host "  |                                                       |" -ForegroundColor Cyan
     Write-Host "  +=======================================================+" -ForegroundColor Cyan
     Write-Host ""
@@ -928,29 +928,11 @@ function Step-EnvConfig {
         return $false
     }
 
-    Write-Info "(Azure values are optional - leave blank to skip and fill later.)"
-    $deviceId = Read-Optional 'Azure IoT Device ID'
-    $hubHost  = Read-Optional 'Azure IoT Hub hostname (xxx.azure-devices.net)'
-    $sasKey   = Read-Optional 'Azure IoT SAS Key'
-    $areaId   = Read-Optional 'Area ID (Heromatic admin app)'
-    $rainEui  = Read-Optional 'Dragino rain sensor EUI (optional)'
-    $mapKey   = Read-Optional 'Azure Maps Primary Key (optional)'
-    $lat      = Read-Optional 'Site latitude (decimal, e.g. 19.4326)' '0.0'
-    $lon      = Read-Optional 'Site longitude (decimal)' '0.0'
-
     # Patch .env in place.
     $content = Get-Content $envFile -Raw
     $patches = @{
         'TZ='                  = "TZ=$tz"
         'LPS8_GATEWAY_EUI='    = "LPS8_GATEWAY_EUI=$lps8Eui"
-        'IOT_DEVICE_ID='       = "IOT_DEVICE_ID=$deviceId"
-        'IOT_HUB_HOSTNAME='    = "IOT_HUB_HOSTNAME=$hubHost"
-        'IOT_SAS_KEY='         = "IOT_SAS_KEY=$sasKey"
-        'AREA_ID='             = "AREA_ID=$areaId"
-        'DRAGINO_RAIN_EUI='    = "DRAGINO_RAIN_EUI=$rainEui"
-        'AZURE_MAP_KEY='       = "AZURE_MAP_KEY=$mapKey"
-        'SITE_LAT='            = "SITE_LAT=$lat"
-        'SITE_LON='            = "SITE_LON=$lon"
     }
     foreach ($k in $patches.Keys) {
         $pat = "(?m)^$([regex]::Escape($k))[^\r\n]*"

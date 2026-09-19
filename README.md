@@ -1,25 +1,19 @@
 # Falcon Docker Stack
 
-> Fork independiente de "Guardian Docker Stack" (antes conocido también
-> como "Riego Docker Stack"), separado para el proyecto Falcon (control de
-> válvulas + rutinas + sensores). Sin conexión de git con el repo
-> original — así los cambios acá nunca afectan a nadie más.
-> Ver `nodered/riego-flow-backup/` para el respaldo del flujo de Node-RED.
+> Stack de Docker para el proyecto Falcon (control de válvulas + rutinas +
+> sensores de riego). Ver `nodered/riego-flow-backup/` para el respaldo
+> del flujo de Node-RED.
 
-Docker Compose stack for the **Environmental Monitoring / Node-RED Falcon** project. Bundles Node-RED (with the Falcon project auto-cloned from GitLab), ChirpStack v4 with LoRaWAN US915 support, MQTT broker, PostgreSQL, Redis, and a gateway bridge for the Dragino LPS8v2.
-
-## Architecture
-
-See `docs/superpowers/specs/2026-04-24-guardian-docker-stack-design.md`.
+Docker Compose stack bundling Node-RED (with the Falcon irrigation flow
+baked into the image), ChirpStack v4 with LoRaWAN US915 support, MQTT
+broker, PostgreSQL, Redis, Home Assistant bridge, and a gateway bridge
+for the Dragino LPS8v2.
 
 ## Prerequisites
 
 - Docker Desktop (Windows/Mac) or Docker Engine + Compose v2 (Linux).
-- Credentials for:
-  - **GitLab**: user + Personal Access Token with `read_repository` scope.
-  - **Heromatic npm registry**: user + password.
-  - **Azure IoT Hub**: Device ID, Hostname, SAS Key.
-  - **Azure Maps**: Primary Key.
+- No external credentials needed to build — everything the image needs
+  is baked in from this repo.
 
 ## Quickstart
 
@@ -54,10 +48,7 @@ Then:
 | Start everything | `docker compose up -d` |
 | Stop everything | `docker compose down` |
 | Stop and wipe volumes | `docker compose down -v` |
-| Rebuild Node-RED after dep change | `docker compose build nodered && docker compose up -d nodered` |
-| Re-render `env.json` / `rainAzureApi.json` after `.env` change | `docker compose restart nodered` |
-| Pull latest GitLab changes | `docker compose exec nodered sh -c "cd /data/projects/enviromental && git pull"` then `docker compose restart nodered` |
-| Switch GitLab branch | `docker compose exec nodered sh -c "cd /data/projects/enviromental && git fetch && git checkout <branch>"` |
+| Rebuild Node-RED after dep/flow change | `docker compose build --no-cache nodered && docker compose up -d nodered` |
 | Backup ChirpStack DB | `docker compose exec postgres pg_dump -U chirpstack chirpstack > backup-$(date +%F).sql` |
 | Follow logs of a service | `docker compose logs -f <service>` |
 
@@ -73,21 +64,14 @@ Then:
 
 ## Troubleshooting
 
-**`npm install` fails with `401 Unauthorized` on `@heromatic/*`**
-- Check `HEROMATIC_NPM_USER` and `HEROMATIC_NPM_PASS` in `.env`.
-- Confirm `HEROMATIC_NPM_REGISTRY` is the correct URL — if Heromatic hosts a private registry (e.g. Verdaccio, GitLab npm registry), update this variable.
-
 **LPS8v2 not showing up in ChirpStack**
 - Verify Windows firewall allows UDP/1700.
 - `docker compose logs chirpstack-gateway-bridge` should show received packets.
 - Confirm the LPS8v2 points at the host's LAN IP (not `localhost`).
 
-**Node-RED cannot reach Modbus gateway 192.168.1.254**
-- `docker compose exec nodered ping 192.168.1.254` — if 100% loss, Docker Desktop cannot route to the LAN.
+**Node-RED cannot reach Modbus gateway**
+- `docker compose exec nodered ping <gateway-ip>` — if 100% loss, Docker Desktop cannot route to the LAN.
 - Mitigation: configure Docker Desktop → Resources → Network, or move the Modbus gateway to a routable interface.
-
-**`env.json` is empty or has `${VAR}` placeholders**
-- The container started before variables were in `.env`. `docker compose restart nodered` re-renders the templates.
 
 **ChirpStack UI doesn't load**
 - First boot takes 30–60 seconds for Postgres schema migration. `docker compose logs chirpstack` should eventually show `starting api listener`.
@@ -98,17 +82,12 @@ Then:
 Falcon-Docker/
 ├── docker-compose.yml
 ├── .env.example
-├── nodered/               # custom Node-RED image + settings + entrypoint + templates
+├── nodered/               # custom Node-RED image + settings + entrypoint + our flows
 ├── chirpstack/            # TOML configs for server and gateway-bridge
 ├── mosquitto/config/      # MQTT broker config
-├── postgres/initdb/       # DB extensions init script
-└── docs/superpowers/      # design spec + implementation plan
+└── postgres/initdb/       # DB extensions init script
 ```
 
 ## Secrets
 
 All secrets live in `.env` (gitignored). Do NOT commit `.env`. If you rotate a secret, `docker compose restart nodered` re-renders the runtime config files.
-
-## License
-
-Internal — Heromatic.

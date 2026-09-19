@@ -1,41 +1,37 @@
 # Respaldo del flujo Riego
 
-Copia de seguridad de `flows.json` y `package.json` del proyecto Node-RED
-"Riego-Docker", que vive normalmente **adentro del volumen Docker
-`nodered_data`** (no en esta carpeta) y se edita en vivo entrando al
-contenedor `falcon-nodered-1`.
-
-Esta carpeta existe para que el flujo completo (control de riego, sensores,
-rutinas, idioma, todo) tenga una copia versionada con git fuera de Docker,
-por si el volumen se corrompe o se borra por accidente.
-
-También incluye `riego.json` (zonas, válvulas, rutinas, sensores) — los
-datos reales de la app, separados del flujo, que viven en `/data/riego.json`
-dentro del volumen.
+Copia de seguridad de `flows.json`, `package.json` y `riego.json` de la
+app de riego. Esta es la fuente de verdad: el `Dockerfile` copia
+`flows.json` y `riego.json` de acá directo a `/data/` **al construir la
+imagen**, así que cualquier instalación nueva (`docker compose build`)
+ya arranca con el flujo completo (control de riego, sensores, rutinas,
+cortinas, idioma, todo).
 
 ## Cómo actualizar este respaldo
 
-Después de hacer cambios importantes (vía editor de Node-RED, la app, o
-scripts), corré esto para traer la copia más reciente:
+Si editaste el flujo en vivo (vía el editor de Node-RED en un contenedor
+ya corriendo) y querés que ese cambio quede guardado acá para el próximo
+build:
 
 ```bash
-docker cp falcon-nodered-1:/data/projects/Riego-Docker/flows.json ./flows.json
-docker cp falcon-nodered-1:/data/projects/Riego-Docker/package.json ./package.json
+docker cp falcon-nodered-1:/data/flows.json ./flows.json
 docker cp falcon-nodered-1:/data/riego.json ./riego.json
 ```
 
 Después commiteá los cambios como cualquier archivo del repo.
 
-## Cómo restaurar (si el volumen se pierde)
+## Cómo aplicar un cambio sin reconstruir la imagen
 
-1. Levantá el contenedor de Node-RED nuevo (`docker compose up -d nodered`).
-2. Copiá estos archivos de vuelta:
-   ```bash
-   docker cp ./flows.json falcon-nodered-1:/data/projects/Riego-Docker/flows.json
-   docker cp ./package.json falcon-nodered-1:/data/projects/Riego-Docker/package.json
-   docker cp ./riego.json falcon-nodered-1:/data/riego.json
-   ```
-3. Redeployá desde el editor de Node-RED, o forzá un full-deploy vía la Admin API.
+Si ya tenés un contenedor corriendo y querés empujarle una versión más
+nueva de `flows.json` sin rebuildear:
+
+```bash
+docker cp ./flows.json falcon-nodered-1:/data/flows.json
+docker cp ./riego.json falcon-nodered-1:/data/riego.json
+```
+
+Después redeployá desde el editor de Node-RED, o forzá un full-deploy
+vía la Admin API.
 
 Nota: los usuarios (ramon, operador1, etc.) NO están acá — viven en
 Postgres (`riego_auth.users`), no en estos archivos. Eso necesita su

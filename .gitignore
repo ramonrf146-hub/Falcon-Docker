@@ -31,5 +31,3 @@ scripts/devices.csv
 # Exported docker image tarballs
 dist/
 
-# Contiene una clave real de Azure IoT de otro sistema (no riego) -- nunca commitear
-nodered/user-config/env.json

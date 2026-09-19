@@ -1,15 +1,15 @@
 {
-    "name": "Riego-Docker",
-    "description": "A Node-RED Project",
+    "name": "Falcon-Docker",
+    "description": "Falcon Node-RED irrigation flow",
     "version": "0.0.1",
     "dependencies": {
         "node-red-contrib-modbus": "5.45.2",
-        "@flowfuse/node-red-dashboard": "1.30.2"
-    },
-    "node-red": {
-        "settings": {
-            "flowFile": "flows.json",
-            "credentialsFile": "flows_cred.json"
-        }
+        "node-red-dashboard": "3.6.6",
+        "@flowfuse/node-red-dashboard": "1.30.2",
+        "node-red-contrib-cron-plus": "2.2.4",
+        "express-session": "1.19.0",
+        "connect-pg-simple": "10.0.0",
+        "pg": "8.23.0",
+        "bcryptjs": "3.0.3"
     }
 }

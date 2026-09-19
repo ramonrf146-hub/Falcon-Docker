@@ -1,7 +1,4 @@
-// Riego stack — Node-RED settings.js
-// Enables the Projects feature and sets sentinelPath before module.exports.
-
-process.env.sentinelPath = 'C:/Projects/RIEGO-DOCKER/nodered/user-config';
+// Falcon stack — Node-RED settings.js
 
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
@@ -216,8 +213,7 @@ module.exports = {
 
     editorTheme: {
         projects: {
-            enabled: true,
-            workflow: { mode: 'manual' }
+            enabled: false
         },
         codeEditor: { lib: 'monaco' }
     },

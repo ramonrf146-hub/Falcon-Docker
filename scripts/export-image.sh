@@ -1,17 +1,17 @@
 #!/bin/sh
-# Exports the riego-docker:latest image (already built locally) to a
+# Exports the falcon-docker:latest image (already built locally) to a
 # compressed tarball that can be copied via USB/network/email to a fresh
 # PC and loaded with scripts/import-image.sh.
 #
 # Usage:  ./scripts/export-image.sh
-# Output: dist/riego-docker-<date>.tar.gz
+# Output: dist/falcon-docker-<date>.tar.gz
 
 set -eu
 
-IMAGE="${IMAGE:-riego-docker:latest}"
+IMAGE="${IMAGE:-falcon-docker:latest}"
 OUT_DIR="${OUT_DIR:-dist}"
 DATE_TAG=$(date +%Y%m%d-%H%M)
-OUT_FILE="$OUT_DIR/riego-docker-$DATE_TAG.tar.gz"
+OUT_FILE="$OUT_DIR/falcon-docker-$DATE_TAG.tar.gz"
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: docker not found in PATH" >&2

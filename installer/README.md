@@ -115,9 +115,6 @@ The image (`falcon-docker-*.tar.gz`) is downloaded automatically from GitHub Rel
 |-------|--------|
 | Timezone | e.g. `America/Mexico_City` |
 | LPS8 Gateway EUI | LPS8 sticker (16 hex chars) |
-| Azure IoT Device ID, Hub Hostname, SAS Key, Area ID | Optional — skip and edit later |
-| Dragino rain sensor EUI, Azure Maps key | Optional |
-| Site latitude/longitude | Optional |
 | Per-sensor: DevEUI, Name, AppKey, DeviceProfile | Loop prompts until you press Enter on empty DevEUI |
 
 ## Troubleshooting
@@ -158,4 +155,4 @@ Manually run the script:
 
 ## License / scope
 
-Internal — Heromatic / Environmental Monitoring (Task-1667).
+Internal — Falcon irrigation control.

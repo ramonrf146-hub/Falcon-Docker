@@ -129,14 +129,6 @@ services:
   nodered:
     build:
       context: ./nodered
-      args:
-        HEROMATIC_NPM_USER: ${HEROMATIC_NPM_USER}
-        HEROMATIC_NPM_PASS: ${HEROMATIC_NPM_PASS}
-        HEROMATIC_NPM_REGISTRY: ${HEROMATIC_NPM_REGISTRY}
-        # GitLab clone happens at build time and is baked into the image.
-        # Credentials never reach the runtime container.
-        GITLAB_USER: ${GITLAB_USER}
-        GITLAB_TOKEN: ${GITLAB_TOKEN}
     image: falcon-docker:latest
     restart: unless-stopped
     devices:
@@ -150,14 +142,6 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       TZ: ${TZ}
       NODERED_CREDENTIAL_SECRET: ${NODERED_CREDENTIAL_SECRET}
-      IOT_DEVICE_ID: ${IOT_DEVICE_ID}
-      IOT_HUB_HOSTNAME: ${IOT_HUB_HOSTNAME}
-      IOT_SAS_KEY: ${IOT_SAS_KEY}
-      AREA_ID: ${AREA_ID}
-      DRAGINO_RAIN_EUI: ${DRAGINO_RAIN_EUI}
-      AZURE_MAP_KEY: ${AZURE_MAP_KEY}
-      SITE_LAT: ${SITE_LAT}
-      SITE_LON: ${SITE_LON}
       MODBUS_GATEWAY_IP: ${MODBUS_GATEWAY_IP}
       MODBUS_GATEWAY_PORT: ${MODBUS_GATEWAY_PORT}
       HA_TOKEN: ${HA_TOKEN}
@@ -181,8 +165,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - nodered_data:/data
-      - ./nodered/user-config/env.json:/templates/env.json.tmpl:ro
-      - ./nodered/user-config/rainAzureApi.json:/templates/rainAzureApi.json.tmpl:ro
     depends_on:
       mosquitto:
         condition: service_started
@@ -202,9 +184,14 @@ services:
   hub-nodered:
     image: falcon-docker:latest
     restart: unless-stopped
-    # El entrypoint.sh horneado en la imagen es especifico del Edge (exige
-    # el proyecto Riego-Docker y renderiza templates que el Hub no usa) --
-    # lo salteamos y arrancamos Node-RED directo.
+    # El entrypoint.sh horneado en la imagen aplica el parche de Modbus del
+    # Edge (no le hace nada al Hub, pero es innecesario) -- lo salteamos y
+    # arrancamos Node-RED directo.
+    # NOTA: la imagen trae horneado el flows.json/riego.json del Edge en
+    # /data. En un volumen nuevo, Docker copia ese contenido tal cual la
+    # primera vez -- hay que reemplazarlo a mano con
+    # nodered/hub-flow-backup/flows.json (ver ese README) antes de usar
+    # este Hub en una instalacion nueva.
     entrypoint: ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
     command: []
     ports:
