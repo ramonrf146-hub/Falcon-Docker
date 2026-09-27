@@ -1,0 +1,9 @@
+Name,MacVersion,RegParamsRevision,Class,IsOtaa,CodecFile
+LSN50v2,LORAWAN_1_0_3,RP002_1_0_3,A,true,lsn50v2.js
+LSE01,LORAWAN_1_0_3,RP002_1_0_3,A,true,lse01.js
+LLMS01,LORAWAN_1_0_3,RP002_1_0_3,A,true,llms01.js
+SPH01-LB,LORAWAN_1_0_3,RP002_1_0_3,A,true,sph01-lb.js
+UV254-LB,LORAWAN_1_0_3,RP002_1_0_3,A,true,uv254-lb.js
+WSC1-L,LORAWAN_1_0_3,RP002_1_0_3,A,true,wsc1-l.js
+WSC2,LORAWAN_1_0_3,RP002_1_0_3,A,true,wsc2.js
+SE01-LB,LORAWAN_1_0_3,RP002_1_0_3,A,true,se01-lb.js

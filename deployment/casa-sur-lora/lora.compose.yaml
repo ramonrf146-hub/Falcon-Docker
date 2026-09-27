@@ -1,0 +1,133 @@
+# Servidor ChirpStack (LoRaWAN) para Casa Sur.
+# Proyecto Compose SEPARADO del de Node-RED (falcon-casa-sur): no comparte
+# base de datos ni se ve afectado por el supervisor USB. Unico punto de union:
+# el broker Mosquitto tambien se conecta a la red de Node-RED con el alias
+# "mosquitto" (el mismo nombre que ya usan los flujos), sin publicar 1883.
+name: falcon-casa-sur-lora
+
+services:
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - lora_pg:/var/lib/postgresql/data
+      - ./config/001-init-extensions.sh:/docker-entrypoint-initdb.d/001-init-extensions.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - lora_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - lora_mosquitto_data:/mosquitto/data
+      - lora_mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 mosquitto_sub -h localhost -t '$$SYS/broker/uptime' -C 1 -i hc || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      default: {}
+      sur:
+        aliases:
+          - mosquitto
+
+  chirpstack:
+    image: chirpstack/chirpstack:4
+    restart: unless-stopped
+    command: -c /etc/chirpstack
+    ports:
+      - "127.0.0.1:${LORA_UI_PORT:-8080}:8080"
+    volumes:
+      - ./config/chirpstack.toml:/etc/chirpstack/chirpstack.toml:ro
+      - ./config/region_us915_1.toml:/etc/chirpstack/region_us915_1.toml:ro
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      CHIRPSTACK_REGION: ${CHIRPSTACK_REGION:-us915_1}
+      CHIRPSTACK_API_SECRET: ${CHIRPSTACK_API_SECRET}
+      MQTT_BROKER_HOST: mosquitto
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  chirpstack-gateway-bridge:
+    image: chirpstack/chirpstack-gateway-bridge:4
+    restart: unless-stopped
+    ports:
+      - "${LORA_UDP_PORT:-1700}:1700/udp"
+    volumes:
+      - ./config/chirpstack-gateway-bridge.toml:/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml:ro
+    environment:
+      CHIRPSTACK_REGION: ${CHIRPSTACK_REGION:-us915_1}
+    depends_on:
+      mosquitto:
+        condition: service_started
+
+  # Solo para el alta inicial (perfiles Dragino, aplicacion, gateway). Se usa con
+  # "--profile init"; despues se detiene y no queda corriendo.
+  chirpstack-rest-api:
+    profiles: [init]
+    image: chirpstack/chirpstack-rest-api:4
+    command: --server chirpstack:8080 --bind 0.0.0.0:8090 --insecure
+    depends_on:
+      - chirpstack
+
+  chirpstack-init:
+    profiles: [init]
+    image: alpine:3
+    restart: "no"
+    depends_on:
+      - chirpstack
+      - chirpstack-rest-api
+    environment:
+      CHIRPSTACK_API: http://chirpstack:8080
+      CHIRPSTACK_ADMIN_USER: admin
+      CHIRPSTACK_ADMIN_PASS: ${CHIRPSTACK_ADMIN_PASS:-admin}
+      LPS8_GATEWAY_EUI: ${LPS8_GATEWAY_EUI}
+      LPS8_GATEWAY_NAME: ${LPS8_GATEWAY_NAME:-LPS8-sur}
+      CHIRPSTACK_TENANT_NAME: ChirpStack
+      CHIRPSTACK_APPLICATION_NAME: Falcon-app
+      DEVICE_PROFILE_NAME: US915-Class-A-OTAA
+      DEVICES_CSV: /scripts/devices.csv
+      DEVICE_PROFILES_CSV: /scripts/device-profiles.csv
+      CODECS_DIR: /codecs
+    volumes:
+      - ./bootstrap:/scripts:ro
+      - ./bootstrap/decoders:/codecs:ro
+    command: ["/bin/sh", "/scripts/bootstrap-chirpstack.sh"]
+
+networks:
+  sur:
+    external: true
+    name: ${SUR_NETWORK:-falcon-casa-sur_default}
+
+volumes:
+  lora_pg:
+  lora_redis:
+  lora_mosquitto_data:
+  lora_mosquitto_log:

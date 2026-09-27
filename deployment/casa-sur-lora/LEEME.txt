@@ -1,0 +1,42 @@
+SERVIDOR CHIRPSTACK PARA CASA SUR (sensores Dragino)
+
+Que instala: ChirpStack v4 + broker MQTT + Redis + PostgreSQL propio, en un
+proyecto Docker separado (falcon-casa-sur-lora). No toca Node-RED, su base de
+datos, el enlace al Hub ni la tarea USB. Region US915 canales 8-15 (igual que
+Casa Principal). Requiere que Casa Sur ya este iniciada.
+
+1. Copiar esta carpeta completa a C:\Projects\Falcon-CasaSur\lora-instalador
+   (con sus subcarpetas config y bootstrap).
+2. PowerShell como administrador:
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Projects\Falcon-CasaSur\lora-instalador\Install-CasaSurLora.ps1"
+   Si ya conoces el EUI del gateway Dragino (16 caracteres, etiqueta del LPS8),
+   agrega:  -GatewayEui 0123456789abcdef
+3. Esperar LORA INSTALADO. Abrir http://localhost:8080 en esa PC, entrar con
+   admin / admin y cambiar la contrasena de inmediato (menu de usuario).
+4. Gateway Dragino (LPS8/LPS8v2/LG308): en su web, LoRaWAN -> Semtech UDP,
+   servidor = IP de esta PC (la imprime el instalador), puertos 1700/1700,
+   canales US915 sub-banda 2 (canales 8-15 + 65). Si no diste el EUI, dar de
+   alta el gateway en ChirpStack: Gateways -> Add gateway.
+5. Sensores: en ChirpStack, Applications -> Falcon-app -> Add device. Elegir el
+   perfil segun modelo (LSN50v2, LSE01, LLMS01, SPH01-LB, UV254-LB, WSC1-L,
+   WSC2, SE01-LB; ya incluyen su decodificador). Ingresar DevEUI y AppKey de la
+   etiqueta del sensor (OTAA). Otro modelo Dragino requiere perfil/decodificador
+   nuevo. Tambien se pueden cargar en lote con lora\bootstrap\devices.csv (formato
+   en scripts\devices.csv.example de Falcon-Docker) y ejecutando de nuevo el
+   instalador solo mientras la contrasena de admin siga siendo la inicial.
+
+Seguridad: la interfaz solo escucha en localhost; MQTT no se publica fuera de
+Docker; el firewall permite UDP 1700 unicamente desde la red local. Secretos
+generados al azar en lora\.env.lora (no compartir ni subir a Git).
+
+Node-RED alcanza el broker con el nombre "mosquitto" (red compartida). Que los
+sensores aparezcan en el Dashboard de Sur es un paso aparte: la pestana de
+sensores de Sur esta deshabilitada y debe adaptarse.
+
+Reinstalar es seguro: conserva .env.lora, volumenes y devices.csv. No usar
+docker compose down -v en la carpeta lora (borra sensores y claves).
+Respaldo (PowerShell, en C:\Projects\Falcon-CasaSur\lora):
+  docker compose --env-file .env.lora -f lora.compose.yaml exec -T postgres pg_dump -U chirpstack -Fc -f /tmp/chirpstack.dump chirpstack
+  docker compose --env-file .env.lora -f lora.compose.yaml cp postgres:/tmp/chirpstack.dump .\chirpstack.dump
+Desinstalar sin tocar Casa Sur: docker compose --env-file .env.lora -f lora.compose.yaml down
+(sin -v; los datos quedan en los volumenes).

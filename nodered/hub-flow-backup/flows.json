@@ -29,7 +29,7 @@
         "type": "function",
         "z": "hub_tab",
         "name": "hub_fn_list",
-        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.revoke{background:#b42318;color:#fff}.reactivate{background:#1a7f37;color:#fff}.rotate{background:#946200;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}</style></head>' +\n        '<body><h2>🌱 Riego Hub — administración de áreas</h2>' + body + '</body></html>';\n}\n\nglobal.get('pgPool').query('SELECT id, name, status, last_heartbeat_at FROM riego_hub.areas ORDER BY created_at')\n    .then(function(result) {\n        var rows = result.rows.map(function(a) {\n            var estado = a.status === 'revoked' ? '<span class=\"bad\">revocada</span>' : '<span class=\"ok\">activa</span>';\n            var hb = a.last_heartbeat_at ? new Date(a.last_heartbeat_at).toLocaleString('es-AR') : 'nunca';\n            var toggle = a.status === 'revoked'\n                ? '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/reactivate\"><button class=\"reactivate\">Reactivar</button></form>'\n                : '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/revoke\"><button class=\"revoke\">Revocar</button></form>';\n            var rotate = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/rotate-key\" onsubmit=\"return confirm(\\'Esto invalida la key actual del area. Confirmar?\\');\"><button class=\"rotate\">Rotar key</button></form>';\n            var estructura = '<a href=\"/hub/areas/' + esc(a.id) + '/estructura\">Estructura</a>';\n            return '<tr><td>' + esc(a.id) + '</td><td>' + esc(a.name) + '</td><td>' + estado + '</td><td>' + esc(hb) + '</td><td>' + toggle + ' ' + rotate + ' ' + estructura + '</td></tr>';\n        }).join('');\n        if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay areas creadas.</td></tr>';\n        var body = '<table><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Ultimo heartbeat</th><th>Acciones</th></tr>' + rows + '</table>' +\n            '<fieldset><legend>Crear area nueva</legend>' +\n            '<form method=\"POST\" action=\"/hub/areas\">' +\n            '<label>Nombre<input name=\"name\" required placeholder=\"Ej: Finca Norte\"></label>' +\n            '<label>ID (opcional, se genera del nombre si se deja vacio)<input name=\"id\" placeholder=\"Ej: finca-norte\"></label>' +\n            '<label>Key existente (opcional -- para dar de alta un area que ya tiene una key funcionando, sin rotarla)<input name=\"existing_key\" placeholder=\"Dejar vacio para generar una key nueva\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear area</button></p>' +\n            '</form></fieldset>';\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Riego Hub', body);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Error', '<p>Error consultando areas: ' + esc(err.message) + '</p>');\n        node.send(msg);\n    });\nreturn null;\n",
+        "func": "\nfunction esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'})[c]; }); }\n\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'form.inline{display:inline}button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:0 2px}' +\n        '.revoke{background:#b42318;color:#fff}.reactivate{background:#1a7f37;color:#fff}.rotate{background:#946200;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}</style></head>' +\n        '<body><h2>🌱 Riego Hub — administración de áreas</h2>' + body + '</body></html>';\n}\n\nglobal.get('pgPool').query('SELECT id, name, status, last_heartbeat_at, internal_url FROM riego_hub.areas ORDER BY created_at')\n    .then(function(result) {\n        var rows = result.rows.map(function(a) {\n            var estado = a.status === 'revoked' ? '<span class=\"bad\">revocada</span>' : '<span class=\"ok\">activa</span>';\n            var hb = a.last_heartbeat_at ? new Date(a.last_heartbeat_at).toLocaleString('es-AR') : 'nunca';\n            var toggle = a.status === 'revoked'\n                ? '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/reactivate\"><button class=\"reactivate\">Reactivar</button></form>'\n                : '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/revoke\"><button class=\"revoke\">Revocar</button></form>';\n            var rotate = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/rotate-key\" onsubmit=\"return confirm(\\'Esto invalida la key actual del area. Confirmar?\\');\"><button class=\"rotate\">Rotar key</button></form>';\n            var estructura = '<a href=\"/hub/areas/' + esc(a.id) + '/estructura\">Estructura</a>';\n            var internalUrlForm = '<form class=\"inline\" method=\"POST\" action=\"/hub/areas/' + esc(a.id) + '/internal-url\">' + '<input name=\"internal_url\" value=\"' + esc(a.internal_url || '') + '\" placeholder=\"http://nodered:1880\" style=\"width:170px;font-size:12px;padding:3px;\"> ' + '<button style=\"padding:4px 8px;font-size:11px;\">Guardar</button></form>';\n        return '<tr><td>' + esc(a.id) + '</td><td>' + esc(a.name) + '</td><td>' + estado + '</td><td>' + esc(hb) + '</td><td>' + toggle + ' ' + rotate + ' ' + estructura + '</td><td>' + internalUrlForm + '</td></tr>';\n        }).join('');\n        if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay areas creadas.</td></tr>';\n        var body = '<table><tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Ultimo heartbeat</th><th>Acciones</th><th>URL interna (gateway)</th></tr>' + rows + '</table>' +\n            '<fieldset><legend>Crear area nueva</legend>' +\n            '<form method=\"POST\" action=\"/hub/areas\">' +\n            '<label>Nombre<input name=\"name\" required placeholder=\"Ej: Finca Norte\"></label>' +\n            '<label>ID (opcional, se genera del nombre si se deja vacio)<input name=\"id\" placeholder=\"Ej: finca-norte\"></label>' +\n            '<label>Key existente (opcional -- para dar de alta un area que ya tiene una key funcionando, sin rotarla)<input name=\"existing_key\" placeholder=\"Dejar vacio para generar una key nueva\"></label>' +\n            '<p><button class=\"create\" type=\"submit\">Crear area</button></p>' +\n            '</form></fieldset>';\n        msg.statusCode = 200;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Riego Hub', body);\n        node.send(msg);\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n        msg.payload = page('Error', '<p>Error consultando areas: ' + esc(err.message) + '</p>');\n        node.send(msg);\n    });\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -279,7 +279,7 @@
         "type": "function",
         "z": "hub_tab",
         "name": "hub_fn_heartbeat",
-        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nif (!areaId || !areaKey) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, reason: 'missing_fields' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT name, key_hash, status, structure_version, structure FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(result) {\n        var area = result.rows[0];\n        if (!area || area.key_hash !== keyHash) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, reason: 'invalid_key' };\n            return node.send(msg);\n        }\n        if (area.status === 'revoked') {\n            msg.statusCode = 403;\n            msg.payload = { ok: false, reason: 'revoked' };\n            return node.send(msg);\n        }\n        var ip = (msg.req.headers['x-forwarded-for'] || (msg.req.connection && msg.req.connection.remoteAddress) || '').toString();\n        global.get('pgPool').query(\n            'UPDATE riego_hub.areas SET last_heartbeat_at = now(), last_heartbeat_ip = $2 WHERE id = $1',\n            [areaId, ip]\n        ).finally(function() {\n            var clientVersion = Number(body.structure_version) || 0;\n            var payload = { ok: true, area_name: area.name, server_time: new Date().toISOString(), structure_version: area.structure_version };\n            if (clientVersion !== area.structure_version) {\n                payload.structure = area.structure;\n            }\n            msg.statusCode = 200;\n            msg.payload = payload;\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, reason: 'internal_error' };\n        node.send(msg);\n    });\nreturn null;\n",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nif (!areaId || !areaKey) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, reason: 'missing_fields' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT name, key_hash, status, structure_version, structure FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(result) {\n        var area = result.rows[0];\n        if (!area || area.key_hash !== keyHash) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, reason: 'invalid_key' };\n            return node.send(msg);\n        }\n        if (area.status === 'revoked') {\n            msg.statusCode = 403;\n            msg.payload = { ok: false, reason: 'revoked' };\n            return node.send(msg);\n        }\n        var ip = (msg.req.headers['x-forwarded-for'] || (msg.req.connection && msg.req.connection.remoteAddress) || '').toString();\n\n        // Edge credentials may report liveness, never provision central structure.\n        var seedPromise = Promise.resolve();\n\n        seedPromise.then(function() {\n            return global.get('pgPool').query(\n                'UPDATE riego_hub.areas SET last_heartbeat_at = now(), last_heartbeat_ip = $2 WHERE id = $1 RETURNING structure_version, structure',\n                [areaId, ip]\n            );\n        }).then(function(updateResult) {\n            var row = updateResult.rows[0];\n            var clientVersion = Number(body.structure_version) || 0;\n            var payload = { ok: true, area_name: area.name, server_time: new Date().toISOString(), structure_version: row.structure_version };\n            if (clientVersion !== row.structure_version) {\n                payload.structure = row.structure;\n            }\n            msg.statusCode = 200;\n            msg.payload = payload;\n            node.send(msg);\n        }).catch(function(err) {\n            msg.statusCode = 500;\n            msg.payload = { ok: false, reason: 'internal_error' };\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, reason: 'internal_error' };\n        node.send(msg);\n    });\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -924,6 +924,528 @@
         "headers": {},
         "x": 680,
         "y": 1940,
+        "wires": []
+    },
+    {
+        "id": "hubu_n1",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/users/login",
+        "url": "/api/users/login",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2100,
+        "wires": [
+            [
+                "hubu_n2"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n2",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_login",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nvar username = (body.username || '').trim();\nvar password = body.password || '';\nif (!areaId || !areaKey || !username || !password) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Faltan datos' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT key_hash, status FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(areaResult) {\n        var area = areaResult.rows[0];\n        if (!area || area.key_hash !== keyHash || area.status === 'revoked') {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, error: 'Usuario o contrasena incorrectos' };\n            return node.send(msg);\n        }\n        global.get('pgPool').query(\n            'SELECT u.id, u.username, u.password_hash, u.role, u.must_change_password, u.language ' +\n            'FROM riego_hub.users u JOIN riego_hub.user_areas ua ON ua.user_id = u.id ' +\n            'WHERE u.username = $1 AND ua.area_id = $2',\n            [username, areaId]\n        ).then(function(userResult) {\n            var user = userResult.rows[0];\n            if (!user || !bcrypt.compareSync(password, user.password_hash)) {\n                msg.statusCode = 401;\n                msg.payload = { ok: false, error: 'Usuario o contrasena incorrectos' };\n                return node.send(msg);\n            }\n            msg.statusCode = 200;\n            msg.payload = { ok: true, user: { id: user.id, username: user.username, role: user.role, mustChangePassword: user.must_change_password, language: user.language || 'es' } };\n            node.send(msg);\n        }).catch(function(err) {\n            msg.statusCode = 500;\n            msg.payload = { ok: false, error: 'Error interno' };\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, error: 'Error interno' };\n        node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            },
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2100,
+        "wires": [
+            [
+                "hubu_n3"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n3",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2100,
+        "wires": []
+    },
+    {
+        "id": "hubu_n4",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/users/change-password",
+        "url": "/api/users/change-password",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2140,
+        "wires": [
+            [
+                "hubu_n5"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n5",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_change_password",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nvar userId = Number(body.user_id);\nvar currentPassword = body.currentPassword || '';\nvar newPassword = body.newPassword || '';\nif (!areaId || !areaKey || !userId || !newPassword) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Faltan datos' };\n    return msg;\n}\nif (newPassword.length < 8) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'La nueva contrasena debe tener minimo 8 caracteres' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT key_hash, status FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(areaResult) {\n        var area = areaResult.rows[0];\n        if (!area || area.key_hash !== keyHash || area.status === 'revoked') {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, error: 'No autorizado' };\n            return node.send(msg);\n        }\n        global.get('pgPool').query(\n            'SELECT u.password_hash FROM riego_hub.users u JOIN riego_hub.user_areas ua ON ua.user_id = u.id WHERE u.id = $1 AND ua.area_id = $2',\n            [userId, areaId]\n        ).then(function(userResult) {\n            var row = userResult.rows[0];\n            if (!row || !bcrypt.compareSync(currentPassword, row.password_hash)) {\n                msg.statusCode = 400;\n                msg.payload = { ok: false, error: 'Contrasena actual incorrecta' };\n                return node.send(msg);\n            }\n            var newHash = bcrypt.hashSync(newPassword, 10);\n            global.get('pgPool').query('UPDATE riego_hub.users SET password_hash=$1, must_change_password=false, updated_at=now() WHERE id=$2', [newHash, userId])\n                .then(function() {\n                    msg.statusCode = 200;\n                    msg.payload = { ok: true };\n                    node.send(msg);\n                })\n                .catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg); });\n        }).catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg); });\n    })\n    .catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            },
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2140,
+        "wires": [
+            [
+                "hubu_n6"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n6",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2140,
+        "wires": []
+    },
+    {
+        "id": "hubu_n7",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/users/set-language",
+        "url": "/api/users/set-language",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2180,
+        "wires": [
+            [
+                "hubu_n8"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n8",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_set_language",
+        "func": "\nvar body = msg.payload || {};\nvar areaId = (body.area_id || '').trim();\nvar areaKey = (body.area_key || '').trim();\nvar userId = Number(body.user_id);\nvar lang = body.lang;\nif (lang !== 'es' && lang !== 'en') {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Idioma invalido' };\n    return msg;\n}\nif (!areaId || !areaKey || !userId) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Faltan datos' };\n    return msg;\n}\nvar keyHash = crypto.createHash('sha256').update(areaKey).digest('hex');\nglobal.get('pgPool').query('SELECT key_hash, status FROM riego_hub.areas WHERE id=$1', [areaId])\n    .then(function(areaResult) {\n        var area = areaResult.rows[0];\n        if (!area || area.key_hash !== keyHash || area.status === 'revoked') {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, error: 'No autorizado' };\n            return node.send(msg);\n        }\n        global.get('pgPool').query(\n            'UPDATE riego_hub.users SET language=$1, updated_at=now() WHERE id=$2 AND EXISTS (SELECT 1 FROM riego_hub.user_areas WHERE user_id=$2 AND area_id=$3)',\n            [lang, userId, areaId]\n        ).then(function() {\n            msg.statusCode = 200;\n            msg.payload = { ok: true, language: lang };\n            node.send(msg);\n        }).catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg); });\n    })\n    .catch(function(err) { msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "crypto",
+                "module": "crypto"
+            },
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2180,
+        "wires": [
+            [
+                "hubu_n9"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n9",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2180,
+        "wires": []
+    },
+    {
+        "id": "hubu_n10",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "GET /hub/usuarios",
+        "url": "/hub/usuarios",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2220,
+        "wires": [
+            [
+                "hubu_n11"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n11",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_usuarios_list",
+        "func": "\nvar esc = global.get('hubEsc');\nfunction page(title, body) {\n    return '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">' +\n        '<title>' + esc(title) + '</title>' +\n        '<style>body{font-family:sans-serif;max-width:900px;margin:30px auto;padding:0 16px;color:#22303F}' +\n        'table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:14px;vertical-align:top}' +\n        'th{background:#0E7C86;color:#fff}.ok{color:#1a7f37;font-weight:700}.bad{color:#b42318;font-weight:700}' +\n        'button{cursor:pointer;border:none;border-radius:4px;padding:5px 10px;font-size:12px;margin:2px 0}' +\n        '.del{background:#b42318;color:#fff}' +\n        'fieldset{margin-top:24px;border:1px solid #ccc;border-radius:6px}label{display:block;margin:10px 0}input,select{padding:6px;margin:4px 0;width:100%;box-sizing:border-box}' +\n        '.create{background:#0E7C86;color:#fff;padding:8px 16px;font-size:14px}' +\n        '.chk{display:inline-flex;align-items:center;gap:6px;width:auto;margin:4px 12px 4px 0}.chk input{width:auto;margin:0}' +\n        '</style></head>' +\n        '<body><h2>Riego Hub &mdash; administraci\\u00f3n de usuarios</h2><p><a href=\"/hub/areas\">&larr; Areas</a></p>' + body + '</body></html>';\n}\n\nPromise.all([\n    global.get('pgPool').query('SELECT id, name FROM riego_hub.areas ORDER BY name'),\n    global.get('pgPool').query('SELECT id, username, role, must_change_password FROM riego_hub.users ORDER BY username'),\n    global.get('pgPool').query('SELECT user_id, area_id FROM riego_hub.user_areas')\n]).then(function(results) {\n    var areas = results[0].rows;\n    var users = results[1].rows;\n    var assigns = results[2].rows;\n    var areasByUser = {};\n    assigns.forEach(function(a) {\n        areasByUser[a.user_id] = areasByUser[a.user_id] || [];\n        areasByUser[a.user_id].push(a.area_id);\n    });\n\n    var rows = users.map(function(u) {\n        var misAreas = (areasByUser[u.id] || []);\n        var areaNombres = misAreas.length ? misAreas.map(esc).join(', ') : '<span class=\"bad\">sin areas asignadas</span>';\n        var pendiente = u.must_change_password ? '<span class=\"bad\">debe cambiar password</span>' : '<span class=\"ok\">activa</span>';\n        var checks = areas.map(function(a) {\n            var checked = misAreas.indexOf(a.id) !== -1 ? ' checked' : '';\n            return '<label class=\"chk\"><input type=\"checkbox\" name=\"areas\" value=\"' + esc(a.id) + '\"' + checked + '> ' + esc(a.name) + '</label>';\n        }).join('');\n        return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.role) + '</td><td>' + areaNombres + '</td><td>' + pendiente + '</td>' +\n            '<td><form method=\"POST\" action=\"/hub/usuarios/' + u.id + '/asignar\">' + checks + '<br><button class=\"create\" type=\"submit\">Guardar areas</button></form>' +\n            '<form method=\"POST\" action=\"/hub/usuarios/' + u.id + '/eliminar\" onsubmit=\"return confirm(\\'Eliminar ' + esc(u.username) + '?\\');\" style=\"margin-top:8px;\"><button class=\"del\" type=\"submit\">Eliminar usuario</button></form></td></tr>';\n    }).join('');\n    if (!rows) rows = '<tr><td colspan=\"5\">Todavia no hay usuarios.</td></tr>';\n\n    var areaChecksNuevo = areas.map(function(a) {\n        return '<label class=\"chk\"><input type=\"checkbox\" name=\"areas\" value=\"' + esc(a.id) + '\"> ' + esc(a.name) + '</label>';\n    }).join('');\n\n    var body = '<table><tr><th>Usuario</th><th>Rol</th><th>Areas asignadas</th><th>Estado</th><th>Acciones</th></tr>' + rows + '</table>' +\n        '<fieldset><legend>Crear usuario nuevo (o resetear password de uno existente)</legend>' +\n        '<form method=\"POST\" action=\"/hub/usuarios\">' +\n        '<label>Usuario<input name=\"username\" required></label>' +\n        '<label>Password temporal (minimo 8 caracteres)<input name=\"password\" type=\"password\" required minlength=\"8\"></label>' +\n        '<label>Rol<select name=\"role\"><option value=\"estandar\">Estandar</option><option value=\"admin\">Administrador</option></select></label>' +\n        '<label>Areas donde puede operar</label>' + areaChecksNuevo +\n        '<p><button class=\"create\" type=\"submit\">Crear / actualizar usuario</button></p>' +\n        '</form></fieldset>';\n    msg.statusCode = 200;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = page('Usuarios', body);\n    node.send(msg);\n}).catch(function(err) {\n    msg.statusCode = 500;\n    msg.headers = { 'Content-Type': 'text/html; charset=utf-8' };\n    msg.payload = page('Error', '<p>Error: ' + esc(err.message) + '</p>');\n    node.send(msg);\n});\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 2220,
+        "wires": [
+            [
+                "hubu_n12"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n12",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2220,
+        "wires": []
+    },
+    {
+        "id": "hubu_n13",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/usuarios",
+        "url": "/hub/usuarios",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2260,
+        "wires": [
+            [
+                "hubu_n14"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n14",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_usuarios_create",
+        "func": "\nvar body = msg.payload || {};\nvar username = (body.username || '').trim();\nvar password = body.password || '';\nvar role = body.role === 'admin' ? 'admin' : 'estandar';\nvar areas = [].concat(body.areas || []).filter(Boolean);\nif (!username || !password || password.length < 8) {\n    msg.statusCode = 400;\n    msg.headers = { 'Content-Type': 'text/plain; charset=utf-8' };\n    msg.payload = 'Usuario y password (minimo 8 caracteres) son requeridos. Volve atras e intenta de nuevo.';\n    return msg;\n}\nvar hash = bcrypt.hashSync(password, 10);\nglobal.get('pgPool').query(\n    'INSERT INTO riego_hub.users (username, password_hash, role, must_change_password) VALUES ($1,$2,$3,true) ' +\n    'ON CONFLICT (username) DO UPDATE SET password_hash=$2, role=$3, must_change_password=true, updated_at=now() ' +\n    'RETURNING id',\n    [username, hash, role]\n).then(function(result) {\n    var userId = result.rows[0].id;\n    global.get('pgPool').query('DELETE FROM riego_hub.user_areas WHERE user_id=$1', [userId])\n        .then(function() {\n            if (!areas.length) {\n                msg.statusCode = 302; msg.headers = { Location: '/hub/usuarios' }; return node.send(msg);\n            }\n            var values = areas.map(function(a, i) { return '($1, $' + (i + 2) + ')'; }).join(',');\n            global.get('pgPool').query(\n                'INSERT INTO riego_hub.user_areas (user_id, area_id) VALUES ' + values + ' ON CONFLICT DO NOTHING',\n                [userId].concat(areas)\n            ).then(function() {\n                msg.statusCode = 302; msg.headers = { Location: '/hub/usuarios' }; node.send(msg);\n            }).catch(function(err) {\n                msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error asignando areas: ' + err.message; node.send(msg);\n            });\n        }).catch(function(err) {\n            msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg);\n        });\n}).catch(function(err) {\n    msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg);\n});\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2260,
+        "wires": [
+            [
+                "hubu_n15"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n15",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2260,
+        "wires": []
+    },
+    {
+        "id": "hubu_n16",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/usuarios/:id/asignar",
+        "url": "/hub/usuarios/:id/asignar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2300,
+        "wires": [
+            [
+                "hubu_n17"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n17",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_usuarios_asignar",
+        "func": "\nvar userId = Number(msg.req.params.id);\nvar body = msg.payload || {};\nvar areas = [].concat(body.areas || []).filter(Boolean);\nglobal.get('pgPool').query('DELETE FROM riego_hub.user_areas WHERE user_id=$1', [userId])\n    .then(function() {\n        if (!areas.length) {\n            msg.statusCode = 302; msg.headers = { Location: '/hub/usuarios' }; return node.send(msg);\n        }\n        var values = areas.map(function(a, i) { return '($1, $' + (i + 2) + ')'; }).join(',');\n        global.get('pgPool').query(\n            'INSERT INTO riego_hub.user_areas (user_id, area_id) VALUES ' + values + ' ON CONFLICT DO NOTHING',\n            [userId].concat(areas)\n        ).then(function() {\n            msg.statusCode = 302; msg.headers = { Location: '/hub/usuarios' }; node.send(msg);\n        }).catch(function(err) {\n            msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 2300,
+        "wires": [
+            [
+                "hubu_n18"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n18",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2300,
+        "wires": []
+    },
+    {
+        "id": "hubu_n19",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/usuarios/:id/eliminar",
+        "url": "/hub/usuarios/:id/eliminar",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2340,
+        "wires": [
+            [
+                "hubu_n20"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n20",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_usuarios_eliminar",
+        "func": "\nvar userId = Number(msg.req.params.id);\nglobal.get('pgPool').query('DELETE FROM riego_hub.users WHERE id=$1', [userId])\n    .then(function() { msg.statusCode = 302; msg.headers = { Location: '/hub/usuarios' }; node.send(msg); })\n    .catch(function(err) { msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 2340,
+        "wires": [
+            [
+                "hubu_n21"
+            ]
+        ]
+    },
+    {
+        "id": "hubu_n21",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2340,
+        "wires": []
+    },
+    {
+        "id": "hubg_n1",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/users/login-direct",
+        "url": "/api/users/login-direct",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2260,
+        "wires": [
+            [
+                "hubg_n2"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_n2",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_login_direct",
+        "func": "\nvar expected = env.get('GATEWAY_SHARED_SECRET') || '';\nvar secret = (msg.req.headers['x-gateway-secret'] || '');\nif (!expected || secret !== expected) {\n    msg.statusCode = 401;\n    msg.payload = { ok: false, error: 'No autorizado' };\n    return msg;\n}\nvar body = msg.payload || {};\nvar username = (body.username || '').trim();\nvar password = body.password || '';\nif (!username || !password) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Faltan datos' };\n    return msg;\n}\nglobal.get('pgPool').query('SELECT id, username, password_hash, role, must_change_password FROM riego_hub.users WHERE username=$1', [username])\n    .then(function(userResult) {\n        var user = userResult.rows[0];\n        if (!user || !bcrypt.compareSync(password, user.password_hash)) {\n            msg.statusCode = 401;\n            msg.payload = { ok: false, error: 'Usuario o contrasena incorrectos' };\n            return node.send(msg);\n        }\n        global.get('pgPool').query(\n            \"SELECT a.id, a.name FROM riego_hub.user_areas ua JOIN riego_hub.areas a ON a.id = ua.area_id WHERE ua.user_id = $1 AND a.status = 'active' ORDER BY a.name\",\n            [user.id]\n        ).then(function(areasResult) {\n            msg.statusCode = 200;\n            msg.payload = { ok: true, user: { id: user.id, username: user.username, role: user.role, mustChangePassword: user.must_change_password }, areas: areasResult.rows };\n            node.send(msg);\n        }).catch(function(err) {\n            msg.statusCode = 500;\n            msg.payload = { ok: false, error: 'Error interno' };\n            node.send(msg);\n        });\n    })\n    .catch(function(err) {\n        msg.statusCode = 500;\n        msg.payload = { ok: false, error: 'Error interno' };\n        node.send(msg);\n    });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2260,
+        "wires": [
+            [
+                "hubg_n3"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_n3",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2260,
+        "wires": []
+    },
+    {
+        "id": "hubg_n4",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /hub/areas/:id/internal-url",
+        "url": "/hub/areas/:id/internal-url",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2300,
+        "wires": [
+            [
+                "hubg_n5"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_n5",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_areas_internal_url",
+        "func": "\nvar areaId = msg.req.params.id;\nvar url = ((msg.payload || {}).internal_url || '').trim();\nglobal.get('pgPool').query('UPDATE riego_hub.areas SET internal_url=$2 WHERE id=$1', [areaId, url || null])\n    .then(function() { msg.statusCode = 302; msg.headers = { Location: '/hub/areas' }; node.send(msg); })\n    .catch(function(err) { msg.statusCode = 500; msg.headers = { 'Content-Type': 'text/plain' }; msg.payload = 'Error: ' + err.message; node.send(msg); });\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 2300,
+        "wires": [
+            [
+                "hubg_n6"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_n6",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2300,
+        "wires": []
+    },
+    {
+        "id": "hubg_password_in",
+        "type": "http in",
+        "z": "hub_tab",
+        "name": "POST /api/users/change-password-direct",
+        "url": "/api/users/change-password-direct",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 2420,
+        "wires": [
+            [
+                "hubg_password_fn"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_password_fn",
+        "type": "function",
+        "z": "hub_tab",
+        "name": "hub_fn_change_password_direct",
+        "func": "\nvar expected = env.get('GATEWAY_SHARED_SECRET') || '';\nif (!expected || msg.req.headers['x-gateway-secret'] !== expected) {\n    msg.statusCode = 401; msg.payload = { ok: false, error: 'No autorizado' }; return msg;\n}\nvar body = msg.payload || {};\nvar userId = Number(body.user_id);\nvar currentPassword = body.currentPassword;\nvar newPassword = body.newPassword;\nif (!Number.isSafeInteger(userId) || userId < 1 || typeof currentPassword !== 'string' || typeof newPassword !== 'string' || newPassword.length < 8 || newPassword === currentPassword) {\n    msg.statusCode = 400; msg.payload = { ok: false, error: 'Usa una contrasena nueva diferente de al menos 8 caracteres' }; return msg;\n}\nvar pool = global.get('pgPool');\npool.query('SELECT password_hash FROM riego_hub.users WHERE id=$1', [userId]).then(async function(result) {\n    var user = result.rows[0];\n    if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {\n        msg.statusCode = 400; msg.payload = { ok: false, error: 'Contrasena actual incorrecta' }; return node.send(msg);\n    }\n    var hash = bcrypt.hashSync(newPassword, 10);\n    var updated = await pool.query('UPDATE riego_hub.users SET password_hash=$1, must_change_password=false, updated_at=now() WHERE id=$2 AND password_hash=$3', [hash, userId, user.password_hash]);\n    msg.statusCode = updated.rowCount === 1 ? 200 : 409;\n    msg.payload = updated.rowCount === 1 ? { ok: true } : { ok: false, error: 'La contrasena cambio. Vuelve a ingresar.' };\n    node.send(msg);\n}).catch(function() {\n    msg.statusCode = 500; msg.payload = { ok: false, error: 'Error interno' }; node.send(msg);\n});\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "bcrypt",
+                "module": "bcryptjs"
+            }
+        ],
+        "x": 420,
+        "y": 2420,
+        "wires": [
+            [
+                "hubg_password_out"
+            ]
+        ]
+    },
+    {
+        "id": "hubg_password_out",
+        "type": "http response",
+        "z": "hub_tab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 680,
+        "y": 2420,
         "wires": []
     }
 ]

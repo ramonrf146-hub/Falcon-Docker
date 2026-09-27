@@ -131,10 +131,6 @@ services:
       context: ./nodered
     image: falcon-docker:latest
     restart: unless-stopped
-    devices:
-      - "/dev/ttyUSB0:/dev/ttyUSB0"
-    group_add:
-      - dialout
     ports:
       - "1880:1880"
     environment:
@@ -148,6 +144,9 @@ services:
       RIEGO_AREA_ID: ${RIEGO_AREA_ID}
       RIEGO_AREA_NAME: ${RIEGO_AREA_NAME}
       RIEGO_AREA_KEY: ${RIEGO_AREA_KEY}
+      # Bootstrap de placas (Etapa 4): solo tiene efecto en una instalacion
+      # nueva sin estructura todavia en el Hub -- ver .env.example.
+      MODBUS_BOARDS: ${MODBUS_BOARDS}
       # Hub central (Etapa 2): si HUB_URL esta vacio, el area sigue con el
       # chequeo de solo-formato de la Etapa 1 (retrocompatible).
       HUB_URL: ${HUB_URL}
@@ -173,45 +172,93 @@ services:
     networks:
       - falcon-net
 
-  # Hub central de areas (Etapa 2): fuente de verdad de que areas fisicas
-  # existen y si su RIEGO_AREA_KEY sigue siendo valida. Cada Edge (como el
-  # "nodered" de arriba) le manda un heartbeat periodico; el Hub puede
-  # revocar el acceso REMOTO al dashboard de un area sin tocar el Edge.
-  # Instancia de Node-RED separada (mismo Postgres, schema "riego_hub"
-  # propio) para que un problema aca nunca pueda afectar el control de
-  # valvulas de ningun Edge -- si este contenedor se cae, cada Edge sigue
-  # regando y sirviendo su dashboard remoto durante HUB_GRACE_PERIOD_HOURS.
+  # Compatibility DNS for local Edges: this is an SSH relay to Oracle,
+  # not a local Hub/DB. It also carries private reverse links for both areas.
   hub-nodered:
+    build:
+      context: .
+      dockerfile: deployment/EdgeLink.Dockerfile
+    image: falcon-edge-link:latest
+    restart: unless-stopped
+    profiles: [hub]
+    ports: ["127.0.0.1:1881:1880"]
+    volumes: ["./.deployment:/keys:ro"]
+    networks: [falcon-net]
+
+  # Segundo Edge (Casa Norte): misma imagen que "nodered", sin hardware
+  # Modbus propio todavia -- arranca vacio y recibe su estructura real del
+  # Hub en el primer heartbeat. Usa su propia base de datos ("riego_norte")
+  # para que sus usuarios/sesiones no se mezclen con los de Casa Principal.
+  casa-norte-nodered:
     image: falcon-docker:latest
     restart: unless-stopped
-    # El entrypoint.sh horneado en la imagen aplica el parche de Modbus del
-    # Edge (no le hace nada al Hub, pero es innecesario) -- lo salteamos y
-    # arrancamos Node-RED directo.
-    # NOTA: la imagen trae horneado el flows.json/riego.json del Edge en
-    # /data. En un volumen nuevo, Docker copia ese contenido tal cual la
-    # primera vez -- hay que reemplazarlo a mano con
-    # nodered/hub-flow-backup/flows.json (ver ese README) antes de usar
-    # este Hub en una instalacion nueva.
+    # Solo se levanta si el perfil "casa-norte" esta activo (ver
+    # COMPOSE_PROFILES en .env) -- especifico de esta PC, no de un sitio
+    # nuevo en otra maquina.
+    profiles:
+      - casa-norte
     entrypoint: ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
     command: []
     ports:
-      - "1881:1880"
+      - "1882:1880"
     environment:
       TZ: ${TZ}
       NODERED_CREDENTIAL_SECRET: ${NODERED_CREDENTIAL_SECRET}
-      HUB_ADMIN_USER: ${HUB_ADMIN_USER}
-      HUB_EDITOR_PASSWORD_HASH: ${HUB_EDITOR_PASSWORD_HASH}
-      HUB_ADMIN_PASSWORD_HASH: ${HUB_ADMIN_PASSWORD_HASH}
+      NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER}
+      NODE_RED_ADMIN_PASSWORD_HASH: ${NODE_RED_ADMIN_PASSWORD_HASH}
+      SESSION_SECRET: ${SESSION_SECRET}
+      LOCAL_EDITOR_BYPASS_SECRET: ${LOCAL_EDITOR_BYPASS_SECRET}
+      HA_TOKEN: ${HA_TOKEN}
+      RIEGO_AREA_ID: casa-norte
+      RIEGO_AREA_NAME: Casa Norte
+      RIEGO_AREA_KEY: ${CASA_NORTE_AREA_KEY}
+      MODBUS_BOARDS: ${CASA_NORTE_MODBUS_BOARDS}
+      HUB_URL: http://hub-nodered:1880
+      HUB_HEARTBEAT_INTERVAL_MINUTES: 10
+      HUB_GRACE_PERIOD_HOURS: 168
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: riego_norte
+    volumes:
+      - casa_norte_nodered_data:/data
+      - ./nodered/settings.js:/data/settings.js:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hub-nodered:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+    networks:
+      - falcon-net
+
+  # Water Gateway (Etapa 6): punto de entrada publico unico
+  # (water.riegocom.uk). Loguea contra el Hub y reenvia al Node-RED real
+  # del area de cada usuario (HTTP + WebSocket), con selector si tiene
+  # varias areas asignadas. El tunel de Cloudflare apunta ACA en vez de
+  # apuntar directo a "nodered" una vez que esto este probado.
+  gateway:
+    profiles: [local-platform]
+    build:
+      context: ./water-gateway
+    image: falcon-water-gateway:latest
+    restart: "no"
+    ports:
+      - "8443:3000"
+    environment:
+      HUB_URL: http://hub-nodered:1880
+      GATEWAY_SESSION_SECRET: ${GATEWAY_SESSION_SECRET}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - hub_nodered_data:/data
-      - ./nodered/hub-settings.js:/data/settings.js:ro
     depends_on:
       postgres:
         condition: service_healthy
+      hub-nodered:
+        condition: service_started
     networks:
       - falcon-net
 
@@ -236,7 +283,7 @@ services:
   # if the token is set, so it's safe to leave empty until you're ready.
   cloudflared:
     image: cloudflare/cloudflared:latest
-    restart: unless-stopped
+    restart: "no"
     command: tunnel --no-autoupdate --protocol http2 run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
@@ -245,7 +292,7 @@ services:
     networks:
       - falcon-net
     profiles:
-      - cloudflare
+      - local-platform
 
 networks:
   falcon-net:
@@ -258,4 +305,7 @@ volumes:
   mosquitto_log:
   nodered_data:
   hub_nodered_data:
+  casa_norte_nodered_data:
   homeassistant_data:
+    external: true
+    name: guardian_homeassistant_data

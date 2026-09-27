@@ -1,0 +1,50 @@
+name: falcon-central
+services:
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    env_file: .env
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: ["central_db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  hub:
+    build:
+      context: ..
+      dockerfile: deployment/Hub.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports: ["127.0.0.1:18881:1880"]
+    volumes: ["hub_data:/data"]
+    depends_on:
+      postgres: {condition: service_healthy}
+  gateway:
+    build: ../water-gateway
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      BIND_HOST: 127.0.0.1
+      HUB_URL: http://127.0.0.1:18881
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 15432
+    depends_on:
+      postgres: {condition: service_healthy}
+      hub: {condition: service_started}
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: host
+    extra_hosts: ["gateway:127.0.0.1"]
+    env_file: tunnel.env
+    command: tunnel --no-autoupdate --protocol http2 run
+    profiles: [public]
+volumes:
+  central_db:
+  hub_data:

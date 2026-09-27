@@ -15,7 +15,8 @@ const pgPool = new Pool({
     host: process.env.POSTGRES_HOST || 'postgres',
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB
+    database: process.env.POSTGRES_DB,
+    port: Number(process.env.POSTGRES_PORT || 5432)
 });
 
 // Verifica un hash generado con scrypt (formato "saltHex:hashHex", ver
@@ -42,6 +43,21 @@ function verifyHubPassword(password, stored) {
 // area_id/area_key en el body del POST, no con usuario/clave.
 function requireHubAdmin(request, response, next) {
     if (!request.path.startsWith('/hub')) return next();
+
+    // The cloud gateway signs a short-lived administrator identity. Verify the
+    // current database role as well, so revoked privileges do not linger.
+    const actor=request.headers['x-hub-actor'];
+    const stamp=request.headers['x-hub-time'];
+    const signature=request.headers['x-hub-signature'];
+    if (actor && stamp && signature && process.env.GATEWAY_SHARED_SECRET && Math.abs(Date.now()-Number(stamp))<30000) {
+        const expected=crypto.createHmac('sha256',process.env.GATEWAY_SHARED_SECRET).update(actor+':'+stamp).digest('hex');
+        if (/^[a-f0-9]{64}$/.test(signature) && crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(signature))) {
+            return pgPool.query('SELECT role FROM riego_hub.users WHERE id=$1',[actor]).then(({rows})=>{
+                if(rows[0]?.role==='admin')return next();
+                response.status(403).send('Solo administradores');
+            }).catch(()=>response.status(503).send('No se pudo verificar el administrador'));
+        }
+    }
 
     const header = request.headers.authorization || '';
     const [scheme, encoded] = header.split(' ');

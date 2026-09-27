@@ -1,0 +1,38 @@
+# Override LOCAL para probar Falcon-Docker en esta PC, que ya tiene el
+# stack real de guardian-docker corriendo con los mismos puertos por
+# defecto (1880, 1881, 1883, 8080, 8090, 8123, 1700/udp). Docker Compose
+# carga este archivo automaticamente junto a docker-compose.yml.
+#
+# "!override" reemplaza la lista de puertos entera -- sin esto, Compose
+# SUMA la lista nueva a la original en vez de reemplazarla, y termina
+# intentando bindear el puerto viejo tambien (ya ocupado por guardian).
+#
+# NO se commitea (ver .gitignore) -- es solo para convivir con
+# guardian-docker en esta maquina de desarrollo. En una PC nueva de
+# verdad no hace falta este archivo, los puertos por defecto sirven tal
+# cual.
+services:
+  mosquitto:
+    ports: !override
+      - "1893:1883"
+  chirpstack:
+    ports: !override
+      - "8081:8080"
+  chirpstack-gateway-bridge:
+    ports: !override
+      - "1701:1700/udp"
+  chirpstack-rest-api:
+    ports: !override
+      - "8091:8090"
+  nodered:
+    ports: !override
+      - "1890:1880"
+    # Esta PC no tiene el gateway Modbus USB real conectado -- se saca el
+    # passthrough del dispositivo solo para esta prueba de software.
+    devices: !override []
+  hub-nodered:
+    ports: !override
+      - "1891:1880"
+  homeassistant:
+    ports: !override
+      - "8133:8123"

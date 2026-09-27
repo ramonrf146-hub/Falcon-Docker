@@ -1,7 +1,12 @@
 # Secrets and local environment
 .env
+.deployment/
 *.pem
 *.key
+
+# Local port-remapping override (e.g. testing alongside guardian-docker
+# on the same dev machine) -- machine-specific, never commit.
+docker-compose.override.yml
 
 # Docker runtime data (volumes are managed by docker, but guard against bind-mount leakage)
 nodered/data/
@@ -31,3 +36,7 @@ scripts/devices.csv
 # Exported docker image tarballs
 dist/
 
+
+# Paquetes generados y temporales (no se versionan)
+output/
+tmp/
